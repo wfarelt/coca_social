@@ -26,6 +26,7 @@
         <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">Dashboard</a>
         <a class="nav-link {% if request.resolver_match.url_name == 'pos' %}active{% endif %}" href="{% url 'pos' %}">Punto de Venta</a>
         <a class="nav-link {% if request.resolver_match.url_name == 'inventory_overview' %}active{% endif %}" href="{% url 'inventory_overview' %}">Inventario</a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'sales_list' %}active{% endif %}" href="{% url 'sales_list' %}">Ventas realizadas</a>
         <a class="nav-link {% if request.resolver_match.url_name == 'products_list' %}active{% endif %}" href="{% url 'products_list' %}">Productos</a>
         <a class="nav-link {% if request.resolver_match.url_name == 'categories_list' %}active{% endif %}" href="{% url 'categories_list' %}">Categorías</a>
         <a class="nav-link {% if request.resolver_match.url_name == 'brands_list' %}active{% endif %}" href="{% url 'brands_list' %}">Marcas</a>

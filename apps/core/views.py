@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.urls import reverse
@@ -17,7 +19,7 @@ from .forms import (
     TransferForm,
     TransferItemFormSet,
 )
-from .models import Brand, Branch, Category, Customer, Product, Purchase, Sale, SaleItem, Supplier, Transfer
+from .models import Brand, Branch, CashMovement, CashShift, Category, Customer, Product, Purchase, Sale, SaleItem, Supplier, Transfer
 
 
 def _module_context(title, subtitle, actions, stats=None, rows=None):
@@ -86,7 +88,11 @@ def pos_checkout(request):
     customer_id = request.POST.get("customer") or None
     payment_method = request.POST.get("payment_method", Sale.PaymentMethod.CASH)
     cash_received = Decimal(request.POST.get("cash_received") or "0")
+    due_date_value = request.POST.get("due_date") or None
+    if payment_method == Sale.PaymentMethod.CREDIT and not customer_id:
+        return HttpResponseBadRequest("El crédito requiere un cliente")
     customer = Customer.objects.filter(pk=customer_id).first() if customer_id else None
+    due_date = date.fromisoformat(due_date_value) if due_date_value else None
     sale_status = Sale.Status.CREDIT if payment_method == Sale.PaymentMethod.CREDIT else Sale.Status.PAID
 
     with transaction.atomic():
@@ -121,10 +127,22 @@ def pos_checkout(request):
         sale.save(update_fields=["subtotal", "total", "change_due", "cash_received", "updated_at"])
         sale.post_to_inventory(_system_user())
         if payment_method == Sale.PaymentMethod.CREDIT:
-            due_date = request.POST.get("due_date") or None
             sale.post_credit(_system_user(), due_date=due_date)
         else:
             sale.post_payment(_system_user(), amount=sale.total)
+            cash_amount = sale.cash_received if sale.cash_received > 0 else sale.total
+            if payment_method == Sale.PaymentMethod.CASH and cash_amount > 0:
+                shift = _active_cash_shift(branch)
+                if shift is not None:
+                    CashMovement.objects.create(
+                        shift=shift,
+                        movement_type=CashMovement.Type.INCOME,
+                        concept=f"Venta {sale.folio}",
+                        amount=cash_amount,
+                        created_by=_system_user(),
+                    )
+                    shift.expected_cash = shift.expected_cash + cash_amount
+                    shift.save(update_fields=["expected_cash", "updated_at"])
 
     request.session.pop("pos_cart", None)
     request.session.modified = True
@@ -208,7 +226,67 @@ def _cart_context(request):
 
 
 def sales_overview(request):
-    return render(request, "core/module.html", _module_context("Ventas realizadas", "Historial de ventas y devoluciones", ["Nuevo POS", "Devoluciones"], [{"label": "Ventas hoy", "value": "$18,420"}, {"label": "Tickets", "value": "214"}], [{"a": "V-1024", "b": "Consumidor final", "c": "$1,120", "d": "Pagada"}, {"a": "V-1023", "b": "Tienda López", "c": "$860", "d": "Crédito"}]))
+    return redirect("sales_list")
+
+
+def sales_list(request):
+    rows = []
+    sales = Sale.objects.select_related("branch", "cashier", "customer").order_by("-sold_at", "-created_at")
+    for sale in sales:
+        rows.append(
+            {
+                "cells": [sale.folio, sale.branch.name, sale.customer.name if sale.customer else "Consumidor final", sale.total, sale.get_status_display()],
+                "edit_url": reverse("sale_detail", args=[sale.pk]),
+                "delete_url": f"/ventas/{sale.pk}/anular/",
+            }
+        )
+    return render(
+        request,
+        "core/document_list.html",
+        {
+            "page_title": "Ventas realizadas",
+            "page_subtitle": "Historial de tickets y cobros",
+            "stats": [{"label": "Ventas hoy", "value": Sale.objects.count()}, {"label": "Crédito", "value": Sale.objects.filter(status=Sale.Status.CREDIT).count()}],
+            "actions": [{"label": "Punto de venta", "url": "/pos/"}],
+            "headers": ["Folio", "Sucursal", "Cliente", "Total", "Estado"],
+            "rows": rows,
+        },
+    )
+
+
+def sale_detail(request, pk):
+    sale = get_object_or_404(Sale.objects.select_related("branch", "cashier", "customer").prefetch_related("items__product"), pk=pk)
+    return render(
+        request,
+        "core/sale_detail.html",
+        {
+            "sale": sale,
+            "page_title": sale.folio,
+            "page_subtitle": f"{sale.branch.name} · {sale.get_status_display()}",
+        },
+    )
+
+
+def sale_cancel(request, pk):
+    sale = get_object_or_404(Sale, pk=pk)
+    if request.method == "POST":
+        sale.status = Sale.Status.CANCELED
+        sale.save(update_fields=["status", "updated_at"])
+        return redirect("sales_list")
+    return render(
+        request,
+        "core/document_delete.html",
+        {
+            "object": sale,
+            "page_title": "Anular venta",
+            "page_subtitle": sale.folio,
+            "list_url": "/ventas/listado/",
+        },
+    )
+
+
+def _active_cash_shift(branch):
+    return CashShift.objects.filter(branch=branch, status=CashShift.Status.OPEN).order_by("-opened_at").first()
 
 
 def sales_returns(request):
