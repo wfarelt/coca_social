@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard | Coca Social{% endblock %}
+{% block page_title %}Dashboard operativo{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  {% for kpi in kpis %}
+  <div class="col-12 col-md-6 col-xl-3">
+    <article class="metric-card tone-{{ kpi.tone }}">
+      <span class="metric-label">{{ kpi.label }}</span>
+      <div class="metric-value">{{ kpi.value }}</div>
+      <small>{{ kpi.delta }}</small>
+    </article>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-12 col-xl-8">
+    <section class="panel h-100">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">Ventas por día</h2>
+          <p class="panel-subtitle mb-0">Tendencia operativa de la semana</p>
+        </div>
+        <span class="badge text-bg-success-soft">+12% vs. ayer</span>
+      </div>
+      <div class="chart-placeholder">
+        <div class="chart-bars">
+          <span style="height: 38%"></span>
+          <span style="height: 52%"></span>
+          <span style="height: 65%"></span>
+          <span style="height: 48%"></span>
+          <span style="height: 78%"></span>
+          <span style="height: 70%"></span>
+          <span style="height: 88%"></span>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="col-12 col-xl-4">
+    <section class="panel h-100">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">Resumen de caja</h2>
+          <p class="panel-subtitle mb-0">Sucursal Centro · Turno matutino</p>
+        </div>
+      </div>
+      <div class="cash-summary">
+        <div><span>Ingresos</span><strong>$21,640</strong></div>
+        <div><span>Egresos</span><strong>$4,180</strong></div>
+        <div><span>Efectivo esperado</span><strong>$17,460</strong></div>
+        <div><span>Diferencia</span><strong class="text-success">$0</strong></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-12 col-xl-4">
+    <section class="panel h-100">
+      <div class="panel-header"><h2 class="panel-title">Stock bajo</h2></div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0 table-clean">
+          <thead><tr><th>Producto</th><th>Sucursal</th><th>Stock</th></tr></thead>
+          <tbody>
+            {% for item in low_stock %}
+            <tr>
+              <td>{{ item.product }}<div class="text-muted small">{{ item.state }}</div></td>
+              <td>{{ item.branch }}</td>
+              <td><span class="stock-pill {{ item.state|lower }}">{{ item.stock }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+  <div class="col-12 col-xl-4">
+    <section class="panel h-100">
+      <div class="panel-header"><h2 class="panel-title">Ventas recientes</h2></div>
+      <div class="stack-list">
+        {% for sale in recent_sales %}
+        <article class="stack-item">
+          <div>
+            <strong>{{ sale.folio }}</strong>
+            <p class="mb-0 text-muted small">{{ sale.customer }}</p>
+          </div>
+          <div class="text-end">
+            <strong>{{ sale.amount }}</strong>
+            <div class="small badge badge-soft">{{ sale.status }}</div>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+  <div class="col-12 col-xl-4">
+    <section class="panel h-100">
+      <div class="panel-header"><h2 class="panel-title">Traspasos pendientes</h2></div>
+      <div class="stack-list">
+        {% for transfer in transfers %}
+        <article class="stack-item">
+          <div>
+            <strong>{{ transfer.code }}</strong>
+            <p class="mb-0 text-muted small">{{ transfer.from }} → {{ transfer.to }}</p>
+          </div>
+          <span class="status-dot status-{{ transfer.state|lower }}">{{ transfer.state }}</span>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}POS | Coca Social{% endblock %}
+{% block page_title %}Punto de venta{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-12 col-xl-8">
+    <section class="panel h-100">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">Venta rápida</h2>
+          <p class="panel-subtitle mb-0">Búsqueda instantánea y captura por código de barras</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+          <input class="form-control form-control-sm search-field" placeholder="Buscar productos o escanear código">
+          <button class="btn btn-outline-primary btn-sm">Nuevo cliente</button>
+        </div>
+      </div>
+
+      <div class="quick-products-grid">
+        {% for product in quick_products %}
+        <button class="quick-product-card" type="button">
+          <span class="quick-product-stock">{{ product.stock }} en stock</span>
+          <strong>{{ product.name }}</strong>
+          <span class="quick-product-price">{{ product.price }}</span>
+        </button>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <div class="col-12 col-xl-4">
+    <section class="panel h-100 pos-summary-panel">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">Carrito</h2>
+          <p class="panel-subtitle mb-0">Sucursal Centro · Caja abierta</p>
+        </div>
+      </div>
+
+      <div class="cart-list">
+        {% for item in cart %}
+        <article class="cart-item">
+          <div>
+            <strong>{{ item.name }}</strong>
+            <p class="mb-0 text-muted small">Precio {{ item.price }}</p>
+          </div>
+          <div class="cart-meta">x{{ item.qty }}</div>
+          <div class="text-end"><strong>{{ item.subtotal }}</strong></div>
+        </article>
+        {% endfor %}
+      </div>
+
+      <div class="pos-totals">
+        <div><span>Subtotal</span><strong>$78</strong></div>
+        <div><span>Descuento</span><strong>$0</strong></div>
+        <div class="total-line"><span>Total</span><strong>$78</strong></div>
+      </div>
+
+      <div class="pos-payment-grid">
+        <input class="form-control" placeholder="Cliente">
+        <select class="form-select">
+          <option>Efectivo</option>
+          <option>Tarjeta</option>
+          <option>Crédito</option>
+        </select>
+        <input class="form-control" placeholder="Efectivo recibido">
+        <input class="form-control" placeholder="Cambio" readonly>
+      </div>
+
+      <button class="btn btn-primary btn-lg w-100 pos-pay-btn">Cobrar</button>
+      <button class="btn btn-outline-secondary w-100 mt-2">Vender al crédito</button>
+    </section>
+  </div>
+</div>
+{% endblock %}

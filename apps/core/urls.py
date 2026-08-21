@@ -1,0 +1,41 @@
+from django.urls import path
+
+from . import views
+
+
+urlpatterns = [
+    path("", views.dashboard, name="dashboard"),
+    path("pos/", views.pos, name="pos"),
+    path("ventas/", views.sales_overview, name="sales_overview"),
+    path("ventas/devoluciones/", views.sales_returns, name="sales_returns"),
+    path("inventario/", views.inventory_overview, name="inventory_overview"),
+    path("inventario/productos/", views.products, name="products"),
+    path("inventario/categorias/", views.categories, name="categories"),
+    path("inventario/marcas/", views.brands, name="brands"),
+    path("inventario/stock/", views.stock_by_branch, name="stock_by_branch"),
+    path("inventario/kardex/", views.kardex, name="kardex"),
+    path("inventario/ajustes/", views.inventory_adjustments, name="inventory_adjustments"),
+    path("compras/", views.purchases_overview, name="purchases_overview"),
+    path("compras/nueva/", views.new_purchase, name="new_purchase"),
+    path("compras/proveedores/", views.suppliers, name="suppliers"),
+    path("traspasos/", views.transfers_overview, name="transfers_overview"),
+    path("traspasos/nuevo/", views.new_transfer, name="new_transfer"),
+    path("traspasos/enviados/", views.sent_transfers, name="sent_transfers"),
+    path("traspasos/recibidos/", views.received_transfers, name="received_transfers"),
+    path("traspasos/pendientes/", views.pending_transfers, name="pending_transfers"),
+    path("clientes/", views.customers_overview, name="customers_overview"),
+    path("clientes/creditos/", views.credits_overview, name="credits_overview"),
+    path("clientes/cobros/", views.collections_overview, name="collections_overview"),
+    path("caja/", views.cash_overview, name="cash_overview"),
+    path("caja/mi-turno/", views.my_shift, name="my_shift"),
+    path("caja/apertura/", views.cash_opening, name="cash_opening"),
+    path("caja/movimientos/", views.cash_movements, name="cash_movements"),
+    path("caja/gastos/", views.cash_expenses, name="cash_expenses"),
+    path("caja/arqueo/", views.cash_close, name="cash_close"),
+    path("reportes/", views.reports_overview, name="reports_overview"),
+    path("administracion/", views.admin_overview, name="admin_overview"),
+    path("administracion/sucursales/", views.admin_branches, name="admin_branches"),
+    path("administracion/usuarios/", views.admin_users, name="admin_users"),
+    path("administracion/roles/", views.admin_roles, name="admin_roles"),
+    path("administracion/configuracion/", views.admin_settings, name="admin_settings"),
+]
