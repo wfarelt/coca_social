@@ -235,6 +235,7 @@ class Sale(TimeStampedModel):
         CARD = "card", "Tarjeta"
         TRANSFER = "transfer", "Transferencia"
         MIXED = "mixed", "Mixto"
+        CREDIT = "credit", "Crédito"
 
     branch = models.ForeignKey(Branch, on_delete=models.PROTECT, related_name="sales")
     cashier = models.ForeignKey(User, on_delete=models.PROTECT, related_name="sales")
@@ -249,12 +250,93 @@ class Sale(TimeStampedModel):
     cash_received = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     change_due = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     sold_at = models.DateTimeField(auto_now_add=True)
+    stock_posted_at = models.DateTimeField(null=True, blank=True)
+    payment_posted_at = models.DateTimeField(null=True, blank=True)
+    credit_posted_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-sold_at", "-created_at"]
 
     def __str__(self) -> str:
         return self.folio
+
+    def post_to_inventory(self, created_by: User) -> None:
+        from django.utils import timezone
+
+        if self.stock_posted_at:
+            return
+        subtotal = Decimal("0.00")
+        for item in self.items.select_related("product"):
+            line_total = item.quantity * item.unit_price - item.discount
+            if item.line_total != line_total:
+                item.line_total = line_total
+                item.save(update_fields=["line_total"])
+            subtotal += line_total
+            stock = ProductStock.get_or_create_stock(self.branch, item.product)
+            stock.apply_delta(-item.quantity)
+            StockMovement.objects.create(
+                branch=self.branch,
+                product=item.product,
+                movement_type=StockMovement.Type.OUT,
+                quantity=item.quantity,
+                reference=self.folio,
+                created_by=created_by,
+            )
+            KardexEntry.objects.create(
+                branch=self.branch,
+                product=item.product,
+                reference=self.folio,
+                movement_type=StockMovement.Type.OUT,
+                quantity_in=Decimal("0.00"),
+                quantity_out=item.quantity,
+                balance=stock.quantity,
+                unit_cost=item.unit_price,
+                created_by=created_by,
+            )
+        self.subtotal = subtotal
+        self.total = subtotal - self.discount + self.tax
+        self.stock_posted_at = timezone.now()
+        self.save(update_fields=["subtotal", "total", "stock_posted_at", "updated_at"])
+
+    def post_payment(self, created_by: User, amount: Decimal | None = None) -> None:
+        from django.utils import timezone
+
+        if self.payment_posted_at:
+            return
+        Payment.objects.create(
+            sale=self,
+            branch=self.branch,
+            received_by=created_by,
+            amount=amount if amount is not None else self.total,
+            method=self.payment_method,
+        )
+        self.payment_posted_at = timezone.now()
+        self.save(update_fields=["payment_posted_at", "updated_at"])
+
+    def post_credit(self, created_by: User, due_date=None) -> None:
+        from django.utils import timezone
+
+        if self.credit_posted_at or self.status != self.Status.CREDIT:
+            return
+        credit_account, _ = CreditAccount.objects.get_or_create(
+            sale=self,
+            defaults={
+                "customer": self.customer,
+                "opened_balance": self.total,
+                "remaining_balance": self.total,
+                "due_date": due_date,
+                "status": CreditAccount.Status.OPEN,
+            },
+        )
+        if not credit_account.customer_id and self.customer_id:
+            credit_account.customer = self.customer
+        credit_account.opened_balance = self.total
+        credit_account.remaining_balance = self.total
+        if due_date:
+            credit_account.due_date = due_date
+        credit_account.save()
+        self.credit_posted_at = timezone.now()
+        self.save(update_fields=["credit_posted_at", "updated_at"])
 
 
 class SaleItem(models.Model):
@@ -267,6 +349,11 @@ class SaleItem(models.Model):
 
     def __str__(self) -> str:
         return f"{self.sale} - {self.product}"
+
+    def save(self, *args, **kwargs):
+        if self.quantity is not None and self.unit_price is not None:
+            self.line_total = (self.quantity * self.unit_price) - self.discount
+        super().save(*args, **kwargs)
 
 
 class CreditAccount(TimeStampedModel):

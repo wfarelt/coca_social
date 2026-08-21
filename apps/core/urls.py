@@ -10,6 +10,7 @@ urlpatterns = [
     path("pos/agregar/<int:pk>/", views.pos_add_item, name="pos_add_item"),
     path("pos/actualizar/<int:pk>/", views.pos_update_item, name="pos_update_item"),
     path("pos/vaciar/", views.pos_clear_cart, name="pos_clear_cart"),
+    path("pos/cobrar/", views.pos_checkout, name="pos_checkout"),
     path("ventas/", views.sales_overview, name="sales_overview"),
     path("ventas/devoluciones/", views.sales_returns, name="sales_returns"),
     path("inventario/", views.inventory_overview, name="inventory_overview"),

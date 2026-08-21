@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.urls import reverse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import HttpResponseBadRequest
 from decimal import Decimal
@@ -16,7 +17,7 @@ from .forms import (
     TransferForm,
     TransferItemFormSet,
 )
-from .models import Brand, Branch, Category, Customer, Product, Purchase, Supplier, Transfer
+from .models import Brand, Branch, Category, Customer, Product, Purchase, Sale, SaleItem, Supplier, Transfer
 
 
 def _module_context(title, subtitle, actions, stats=None, rows=None):
@@ -59,6 +60,7 @@ def dashboard(request):
 def pos(request):
     cart_context = _cart_context(request)
     context = {
+        "customers": Customer.objects.filter(is_active=True).order_by("name")[:20],
         "quick_products": [
             {"name": "Coca-Cola 600ml", "price": "$18", "stock": 48},
             {"name": "Pan Bimbo grande", "price": "$42", "stock": 19},
@@ -68,6 +70,65 @@ def pos(request):
         **cart_context,
     }
     return render(request, "core/pos.html", context)
+
+
+def pos_checkout(request):
+    if request.method != "POST":
+        return HttpResponseBadRequest("Invalid method")
+    cart = request.session.get("pos_cart", {})
+    if not cart:
+        return redirect("pos")
+
+    branch = Branch.objects.filter(is_active=True).order_by("name").first()
+    if branch is None:
+        return HttpResponseBadRequest("No hay sucursales activas")
+
+    customer_id = request.POST.get("customer") or None
+    payment_method = request.POST.get("payment_method", Sale.PaymentMethod.CASH)
+    cash_received = Decimal(request.POST.get("cash_received") or "0")
+    customer = Customer.objects.filter(pk=customer_id).first() if customer_id else None
+    sale_status = Sale.Status.CREDIT if payment_method == Sale.PaymentMethod.CREDIT else Sale.Status.PAID
+
+    with transaction.atomic():
+        sale = Sale.objects.create(
+            branch=branch,
+            cashier=_system_user(),
+            customer=customer,
+            folio=f"V-{Sale.objects.count() + 1000}",
+            status=sale_status,
+            payment_method=payment_method,
+            cash_received=cash_received if payment_method != Sale.PaymentMethod.CREDIT else Decimal("0.00"),
+            change_due=Decimal("0.00"),
+        )
+        subtotal = Decimal("0.00")
+        for product in Product.objects.filter(pk__in=[int(product_id) for product_id in cart.keys()]).order_by("name"):
+            quantity = Decimal(cart.get(str(product.pk), 0))
+            if quantity <= 0:
+                continue
+            item = SaleItem.objects.create(
+                sale=sale,
+                product=product,
+                quantity=quantity,
+                unit_price=product.sale_price,
+                discount=Decimal("0.00"),
+                line_total=Decimal("0.00"),
+            )
+            subtotal += item.line_total
+        sale.subtotal = subtotal
+        sale.total = subtotal
+        if payment_method != Sale.PaymentMethod.CREDIT:
+            sale.change_due = max(cash_received - sale.total, Decimal("0.00"))
+        sale.save(update_fields=["subtotal", "total", "change_due", "cash_received", "updated_at"])
+        sale.post_to_inventory(_system_user())
+        if payment_method == Sale.PaymentMethod.CREDIT:
+            due_date = request.POST.get("due_date") or None
+            sale.post_credit(_system_user(), due_date=due_date)
+        else:
+            sale.post_payment(_system_user(), amount=sale.total)
+
+    request.session.pop("pos_cart", None)
+    request.session.modified = True
+    return redirect("pos")
 
 
 def pos_search(request):

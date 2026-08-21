@@ -48,19 +48,27 @@
         <div class="total-line"><span>Total</span><strong>${{ total|default:0 }}</strong></div>
       </div>
 
-      <div class="pos-payment-grid">
-        <input class="form-control" placeholder="Cliente">
-        <select class="form-select">
-          <option>Efectivo</option>
-          <option>Tarjeta</option>
-          <option>Crédito</option>
-        </select>
-        <input class="form-control" placeholder="Efectivo recibido">
-        <input class="form-control" placeholder="Cambio" readonly>
-      </div>
+      <form method="post" action="{% url 'pos_checkout' %}">
+        {% csrf_token %}
+        <div class="pos-payment-grid">
+          <select class="form-select" name="customer">
+            <option value="">Consumidor final</option>
+            {% for customer in customers %}
+            <option value="{{ customer.pk }}">{{ customer.name }}</option>
+            {% endfor %}
+          </select>
+          <select class="form-select" name="payment_method">
+            <option value="cash">Efectivo</option>
+            <option value="card">Tarjeta</option>
+            <option value="credit">Crédito</option>
+          </select>
+          <input class="form-control" name="cash_received" placeholder="Efectivo recibido" value="0">
+          <input class="form-control" name="due_date" placeholder="Vence" type="date">
+        </div>
 
-      <button class="btn btn-primary btn-lg w-100 pos-pay-btn">Cobrar</button>
-      <button class="btn btn-outline-secondary w-100 mt-2">Vender al crédito</button>
+        <button class="btn btn-primary btn-lg w-100 pos-pay-btn" type="submit">Cobrar</button>
+        <button class="btn btn-outline-secondary w-100 mt-2" type="button">Vender al crédito</button>
+      </form>
     </section>
   </div>
 </div>
