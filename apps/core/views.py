@@ -1,9 +1,21 @@
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import HttpResponseBadRequest
 from decimal import Decimal
 
-from .forms import BrandForm, BranchForm, CategoryForm, CustomerForm, ProductForm, PurchaseForm, SupplierForm, TransferForm
+from .forms import (
+    BrandForm,
+    BranchForm,
+    CategoryForm,
+    CustomerForm,
+    ProductForm,
+    PurchaseForm,
+    PurchaseItemFormSet,
+    SupplierForm,
+    TransferForm,
+    TransferItemFormSet,
+)
 from .models import Brand, Branch, Category, Customer, Product, Purchase, Supplier, Transfer
 
 
@@ -214,20 +226,52 @@ def purchases_list(request):
 
 def purchase_create(request):
     form = PurchaseForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        obj = form.save(commit=False)
-        obj.save()
+    formset = PurchaseItemFormSet(request.POST or None)
+    if request.method == "POST" and form.is_valid() and formset.is_valid():
+        with transaction.atomic():
+            purchase = form.save()
+            formset.instance = purchase
+            formset.save()
         return redirect("purchases_list")
-    return render(request, "core/document_form.html", {"form": form, "page_title": "Nueva compra", "page_subtitle": "Alta de compra", "list_url": "/compras/"})
+    return render(
+        request,
+        "core/document_items_form.html",
+        {
+            "form": form,
+            "formset": formset,
+            "page_title": "Nueva compra",
+            "page_subtitle": "Alta de compra con líneas de producto",
+            "list_url": "/compras/",
+            "items_title": "Líneas de compra",
+            "items_subtitle": "Agrega productos, cantidades y costos unitarios.",
+            "item_headers": ["Producto", "Cantidad", "Costo unitario", "Total"],
+        },
+    )
 
 
 def purchase_edit(request, pk):
     purchase = get_object_or_404(Purchase, pk=pk)
     form = PurchaseForm(request.POST or None, instance=purchase)
-    if request.method == "POST" and form.is_valid():
-        form.save()
+    formset = PurchaseItemFormSet(request.POST or None, instance=purchase)
+    if request.method == "POST" and form.is_valid() and formset.is_valid():
+        with transaction.atomic():
+            form.save()
+            formset.save()
         return redirect("purchases_list")
-    return render(request, "core/document_form.html", {"form": form, "page_title": "Editar compra", "page_subtitle": purchase.folio, "list_url": "/compras/"})
+    return render(
+        request,
+        "core/document_items_form.html",
+        {
+            "form": form,
+            "formset": formset,
+            "page_title": "Editar compra",
+            "page_subtitle": purchase.folio,
+            "list_url": "/compras/",
+            "items_title": "Líneas de compra",
+            "items_subtitle": "Edita productos, cantidades y costos.",
+            "item_headers": ["Producto", "Cantidad", "Costo unitario", "Total"],
+        },
+    )
 
 
 def purchase_delete(request, pk):
@@ -264,24 +308,57 @@ def transfers_list(request):
 
 def transfer_create(request):
     form = TransferForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        obj = form.save(commit=False)
-        obj.created_by = _system_user()
-        obj.save()
+    formset = TransferItemFormSet(request.POST or None)
+    if request.method == "POST" and form.is_valid() and formset.is_valid():
+        with transaction.atomic():
+            transfer = form.save(commit=False)
+            transfer.created_by = _system_user()
+            transfer.save()
+            formset.instance = transfer
+            formset.save()
         return redirect("transfers_list")
-    return render(request, "core/document_form.html", {"form": form, "page_title": "Nuevo traspaso", "page_subtitle": "Crea un envío entre sucursales", "list_url": "/traspasos/"})
+    return render(
+        request,
+        "core/document_items_form.html",
+        {
+            "form": form,
+            "formset": formset,
+            "page_title": "Nuevo traspaso",
+            "page_subtitle": "Crea un envío entre sucursales",
+            "list_url": "/traspasos/",
+            "items_title": "Líneas de traspaso",
+            "items_subtitle": "Define los productos enviados y las cantidades recibidas si aplica.",
+            "item_headers": ["Producto", "Solicitado", "Recibido"],
+        },
+    )
 
 
 def transfer_edit(request, pk):
     transfer = get_object_or_404(Transfer, pk=pk)
     form = TransferForm(request.POST or None, instance=transfer)
-    if request.method == "POST" and form.is_valid():
-        obj = form.save(commit=False)
-        if not obj.created_by_id:
-            obj.created_by = transfer.created_by or _system_user()
-        obj.save()
+    formset = TransferItemFormSet(request.POST or None, instance=transfer)
+    if request.method == "POST" and form.is_valid() and formset.is_valid():
+        with transaction.atomic():
+            obj = form.save(commit=False)
+            if not obj.created_by_id:
+                obj.created_by = transfer.created_by or _system_user()
+            obj.save()
+            formset.save()
         return redirect("transfers_list")
-    return render(request, "core/document_form.html", {"form": form, "page_title": "Editar traspaso", "page_subtitle": transfer.code, "list_url": "/traspasos/"})
+    return render(
+        request,
+        "core/document_items_form.html",
+        {
+            "form": form,
+            "formset": formset,
+            "page_title": "Editar traspaso",
+            "page_subtitle": transfer.code,
+            "list_url": "/traspasos/",
+            "items_title": "Líneas de traspaso",
+            "items_subtitle": "Ajusta los productos y confirma recepciones parciales.",
+            "item_headers": ["Producto", "Solicitado", "Recibido"],
+        },
+    )
 
 
 def transfer_delete(request, pk):
