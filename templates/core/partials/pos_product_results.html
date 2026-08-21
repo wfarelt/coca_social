@@ -1,0 +1,16 @@
+<div class="quick-products-grid">
+  {% for product in products|default:quick_products %}
+  <form method="post" action="{% url 'pos_add_item' product.pk %}">
+    {% csrf_token %}
+    <button class="quick-product-card w-100" type="submit">
+      <span class="quick-product-stock">{{ product.stocks.first.quantity|default:product.stock|default:0 }} en stock</span>
+      <strong>{{ product.name }}</strong>
+      <span class="quick-product-price">${{ product.sale_price|default:product.price }}</span>
+    </button>
+  </form>
+  {% empty %}
+  <div class="panel border-0 shadow-none bg-light">
+    <p class="mb-0 text-muted">No se encontraron productos.</p>
+  </div>
+  {% endfor %}
+</div>

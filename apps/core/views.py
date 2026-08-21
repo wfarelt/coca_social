@@ -1,4 +1,9 @@
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, redirect, render
+from django.http import HttpResponseBadRequest
+from decimal import Decimal
+
+from .forms import BrandForm, BranchForm, CategoryForm, CustomerForm, ProductForm, SupplierForm
+from .models import Brand, Branch, Category, Customer, Product, Supplier
 
 
 def _module_context(title, subtitle, actions, stats=None, rows=None):
@@ -39,6 +44,7 @@ def dashboard(request):
 
 
 def pos(request):
+    cart_context = _cart_context(request)
     context = {
         "quick_products": [
             {"name": "Coca-Cola 600ml", "price": "$18", "stock": 48},
@@ -46,12 +52,85 @@ def pos(request):
             {"name": "Leche entera 1L", "price": "$28", "stock": 12},
             {"name": "Arroz 1kg", "price": "$26", "stock": 31},
         ],
-        "cart": [
-            {"name": "Coca-Cola 600ml", "qty": 2, "price": "$18", "subtotal": "$36"},
-            {"name": "Pan Bimbo grande", "qty": 1, "price": "$42", "subtotal": "$42"},
-        ],
+        **cart_context,
     }
     return render(request, "core/pos.html", context)
+
+
+def pos_search(request):
+    query = request.GET.get("q", "").strip()
+    products = Product.objects.select_related("category").filter(is_active=True)
+    if query:
+        products = products.filter(name__icontains=query) | products.filter(code__icontains=query) | products.filter(barcode__icontains=query)
+    products = products.order_by("name")[:12]
+    return render(request, "core/partials/pos_product_results.html", {"products": products, "query": query})
+
+
+def pos_add_item(request, pk):
+    if request.method != "POST":
+        return HttpResponseBadRequest("Invalid method")
+    product = get_object_or_404(Product, pk=pk, is_active=True)
+    cart = request.session.get("pos_cart", {})
+    key = str(product.pk)
+    cart[key] = cart.get(key, 0) + 1
+    request.session["pos_cart"] = cart
+    request.session.modified = True
+    return render(request, "core/partials/pos_cart.html", _cart_context(request))
+
+
+def pos_update_item(request, pk):
+    if request.method != "POST":
+        return HttpResponseBadRequest("Invalid method")
+    action = request.POST.get("action")
+    cart = request.session.get("pos_cart", {})
+    key = str(pk)
+    quantity = int(cart.get(key, 0))
+    if action == "increase":
+        quantity += 1
+    elif action == "decrease":
+        quantity = max(0, quantity - 1)
+    elif action == "remove":
+        quantity = 0
+    if quantity <= 0:
+        cart.pop(key, None)
+    else:
+        cart[key] = quantity
+    request.session["pos_cart"] = cart
+    request.session.modified = True
+    return render(request, "core/partials/pos_cart.html", _cart_context(request))
+
+
+def pos_clear_cart(request):
+    if request.method != "POST":
+        return HttpResponseBadRequest("Invalid method")
+    request.session.pop("pos_cart", None)
+    request.session.modified = True
+    return render(request, "core/partials/pos_cart.html", _cart_context(request))
+
+
+def _cart_context(request):
+    cart = request.session.get("pos_cart", {})
+    product_ids = [int(product_id) for product_id in cart.keys()]
+    products = Product.objects.filter(pk__in=product_ids).order_by("name")
+    items = []
+    subtotal = Decimal("0.00")
+    for product in products:
+        quantity = int(cart.get(str(product.pk), 0))
+        line_total = product.sale_price * quantity
+        subtotal += line_total
+        items.append({
+            "id": product.pk,
+            "name": product.name,
+            "qty": quantity,
+            "price": product.sale_price,
+            "subtotal": line_total,
+        })
+    return {
+        "cart": items,
+        "subtotal": subtotal,
+        "discount": Decimal("0.00"),
+        "total": subtotal,
+    }
 
 
 def sales_overview(request):
@@ -180,3 +259,226 @@ def admin_roles(request):
 
 def admin_settings(request):
     return render(request, "core/module.html", _module_context("Configuración", "Parámetros generales del sistema", ["Guardar cambios"], [{"label": "Estado", "value": "Activo"}], []))
+
+
+def _catalog_list(request, *, model, page_title, page_subtitle, create_url, create_label, headers, row_builder):
+    rows = [row_builder(instance) for instance in model.objects.all()]
+    return render(
+        request,
+        "core/catalog_list.html",
+        {
+            "page_title": page_title,
+            "page_subtitle": page_subtitle,
+            "create_url": create_url,
+            "create_label": create_label,
+            "headers": headers,
+            "rows": rows,
+        },
+    )
+
+
+def _catalog_form(request, *, form_class, page_title, page_subtitle, list_url, template_name="core/catalog_form.html", instance=None):
+    form = form_class(request.POST or None, instance=instance)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        return redirect(list_url)
+    return render(
+        request,
+        template_name,
+        {
+            "form": form,
+            "page_title": page_title,
+            "page_subtitle": page_subtitle,
+            "list_url": list_url,
+        },
+    )
+
+
+def _catalog_delete(request, *, instance, list_url, page_title, page_subtitle):
+    if request.method == "POST":
+        instance.delete()
+        return redirect(list_url)
+    return render(
+        request,
+        "core/catalog_delete.html",
+        {
+            "object": instance,
+            "page_title": page_title,
+            "page_subtitle": page_subtitle,
+            "list_url": list_url,
+        },
+    )
+
+
+def branches(request):
+    return _catalog_list(
+        request,
+        model=Branch,
+        page_title="Sucursales",
+        page_subtitle="Gestión de sedes operativas",
+        create_url="/catalogos/sucursales/nueva/",
+        create_label="Nueva sucursal",
+        headers=["Nombre", "Código", "Estado", "Dirección"],
+        row_builder=lambda obj: {
+            "cells": [obj.name, obj.code, "Activa" if obj.is_active else "Inactiva", obj.address or "-"],
+            "edit_url": f"/catalogos/sucursales/{obj.pk}/editar/",
+            "delete_url": f"/catalogos/sucursales/{obj.pk}/eliminar/",
+        },
+    )
+
+
+def branch_create(request):
+    return _catalog_form(request, form_class=BranchForm, page_title="Nueva sucursal", page_subtitle="Alta de una sede operativa", list_url="/catalogos/sucursales/")
+
+
+def branch_edit(request, pk):
+    return _catalog_form(request, form_class=BranchForm, instance=get_object_or_404(Branch, pk=pk), page_title="Editar sucursal", page_subtitle="Ajusta los datos de la sede", list_url="/catalogos/sucursales/")
+
+
+def branch_delete(request, pk):
+    return _catalog_delete(request, instance=get_object_or_404(Branch, pk=pk), list_url="/catalogos/sucursales/", page_title="Eliminar sucursal", page_subtitle="Confirma la eliminación de la sede")
+
+
+def categories_list(request):
+    return _catalog_list(
+        request,
+        model=Category,
+        page_title="Categorías",
+        page_subtitle="Clasificación de productos",
+        create_url="/catalogos/categorias/nueva/",
+        create_label="Nueva categoría",
+        headers=["Nombre", "Estado"],
+        row_builder=lambda obj: {
+            "cells": [obj.name, "Activa" if obj.is_active else "Inactiva"],
+            "edit_url": f"/catalogos/categorias/{obj.pk}/editar/",
+            "delete_url": f"/catalogos/categorias/{obj.pk}/eliminar/",
+        },
+    )
+
+
+def category_create(request):
+    return _catalog_form(request, form_class=CategoryForm, page_title="Nueva categoría", page_subtitle="Crea una familia de productos", list_url="/catalogos/categorias/")
+
+
+def category_edit(request, pk):
+    return _catalog_form(request, form_class=CategoryForm, instance=get_object_or_404(Category, pk=pk), page_title="Editar categoría", page_subtitle="Ajusta el nombre o estado", list_url="/catalogos/categorias/")
+
+
+def category_delete(request, pk):
+    return _catalog_delete(request, instance=get_object_or_404(Category, pk=pk), list_url="/catalogos/categorias/", page_title="Eliminar categoría", page_subtitle="Confirma la eliminación de la categoría")
+
+
+def products_list(request):
+    return _catalog_list(
+        request,
+        model=Product,
+        page_title="Productos",
+        page_subtitle="Catálogo comercial y precios",
+        create_url="/catalogos/productos/nuevo/",
+        create_label="Nuevo producto",
+        headers=["Código", "Nombre", "Categoría", "Precio venta", "Estado"],
+        row_builder=lambda obj: {
+            "cells": [obj.code, obj.name, obj.category.name, f"${obj.sale_price}", "Activo" if obj.is_active else "Inactivo"],
+            "edit_url": f"/catalogos/productos/{obj.pk}/editar/",
+            "delete_url": f"/catalogos/productos/{obj.pk}/eliminar/",
+        },
+    )
+
+
+def product_create(request):
+    return _catalog_form(request, form_class=ProductForm, page_title="Nuevo producto", page_subtitle="Alta de artículo", list_url="/catalogos/productos/")
+
+
+def product_edit(request, pk):
+    return _catalog_form(request, form_class=ProductForm, instance=get_object_or_404(Product, pk=pk), page_title="Editar producto", page_subtitle="Corrige datos del artículo", list_url="/catalogos/productos/")
+
+
+def product_delete(request, pk):
+    return _catalog_delete(request, instance=get_object_or_404(Product, pk=pk), list_url="/catalogos/productos/", page_title="Eliminar producto", page_subtitle="Confirma la eliminación del producto")
+
+
+def brands_list(request):
+    return _catalog_list(
+        request,
+        model=Brand,
+        page_title="Marcas",
+        page_subtitle="Fabricantes y líneas comerciales",
+        create_url="/catalogos/marcas/nueva/",
+        create_label="Nueva marca",
+        headers=["Nombre", "Estado"],
+        row_builder=lambda obj: {
+            "cells": [obj.name, "Activa" if obj.is_active else "Inactiva"],
+            "edit_url": f"/catalogos/marcas/{obj.pk}/editar/",
+            "delete_url": f"/catalogos/marcas/{obj.pk}/eliminar/",
+        },
+    )
+
+
+def brand_create(request):
+    return _catalog_form(request, form_class=BrandForm, page_title="Nueva marca", page_subtitle="Alta de marca comercial", list_url="/catalogos/marcas/")
+
+
+def brand_edit(request, pk):
+    return _catalog_form(request, form_class=BrandForm, instance=get_object_or_404(Brand, pk=pk), page_title="Editar marca", page_subtitle="Ajusta el registro", list_url="/catalogos/marcas/")
+
+
+def brand_delete(request, pk):
+    return _catalog_delete(request, instance=get_object_or_404(Brand, pk=pk), list_url="/catalogos/marcas/", page_title="Eliminar marca", page_subtitle="Confirma la eliminación de la marca")
+
+
+def suppliers_list(request):
+    return _catalog_list(
+        request,
+        model=Supplier,
+        page_title="Proveedores",
+        page_subtitle="Catálogo de abastecedores",
+        create_url="/catalogos/proveedores/nuevo/",
+        create_label="Nuevo proveedor",
+        headers=["Nombre", "Teléfono", "Estado"],
+        row_builder=lambda obj: {
+            "cells": [obj.name, obj.phone or "-", "Activo" if obj.is_active else "Inactivo"],
+            "edit_url": f"/catalogos/proveedores/{obj.pk}/editar/",
+            "delete_url": f"/catalogos/proveedores/{obj.pk}/eliminar/",
+        },
+    )
+
+
+def supplier_create(request):
+    return _catalog_form(request, form_class=SupplierForm, page_title="Nuevo proveedor", page_subtitle="Alta de proveedor", list_url="/catalogos/proveedores/")
+
+
+def supplier_edit(request, pk):
+    return _catalog_form(request, form_class=SupplierForm, instance=get_object_or_404(Supplier, pk=pk), page_title="Editar proveedor", page_subtitle="Ajusta los datos del proveedor", list_url="/catalogos/proveedores/")
+
+
+def supplier_delete(request, pk):
+    return _catalog_delete(request, instance=get_object_or_404(Supplier, pk=pk), list_url="/catalogos/proveedores/", page_title="Eliminar proveedor", page_subtitle="Confirma la eliminación del proveedor")
+
+
+def customers_list(request):
+    return _catalog_list(
+        request,
+        model=Customer,
+        page_title="Clientes",
+        page_subtitle="Catálogo de clientes y crédito",
+        create_url="/catalogos/clientes/nuevo/",
+        create_label="Nuevo cliente",
+        headers=["Nombre", "Teléfono", "Crédito", "Saldo"],
+        row_builder=lambda obj: {
+            "cells": [obj.name, obj.phone or "-", f"${obj.credit_limit}", f"${obj.balance}"],
+            "edit_url": f"/catalogos/clientes/{obj.pk}/editar/",
+            "delete_url": f"/catalogos/clientes/{obj.pk}/eliminar/",
+        },
+    )
+
+
+def customer_create(request):
+    return _catalog_form(request, form_class=CustomerForm, page_title="Nuevo cliente", page_subtitle="Alta de cliente", list_url="/catalogos/clientes/")
+
+
+def customer_edit(request, pk):
+    return _catalog_form(request, form_class=CustomerForm, instance=get_object_or_404(Customer, pk=pk), page_title="Editar cliente", page_subtitle="Ajusta los datos del cliente", list_url="/catalogos/clientes/")
+
+
+def customer_delete(request, pk):
+    return _catalog_delete(request, instance=get_object_or_404(Customer, pk=pk), list_url="/catalogos/clientes/", page_title="Eliminar cliente", page_subtitle="Confirma la eliminación del cliente")
