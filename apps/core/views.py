@@ -232,6 +232,8 @@ def purchase_create(request):
             purchase = form.save()
             formset.instance = purchase
             formset.save()
+            if purchase.status == Purchase.Status.POSTED:
+                purchase.post_to_inventory(_system_user())
         return redirect("purchases_list")
     return render(
         request,
@@ -255,8 +257,10 @@ def purchase_edit(request, pk):
     formset = PurchaseItemFormSet(request.POST or None, instance=purchase)
     if request.method == "POST" and form.is_valid() and formset.is_valid():
         with transaction.atomic():
-            form.save()
+            purchase = form.save()
             formset.save()
+            if purchase.status == Purchase.Status.POSTED:
+                purchase.post_to_inventory(_system_user())
         return redirect("purchases_list")
     return render(
         request,
@@ -316,6 +320,11 @@ def transfer_create(request):
             transfer.save()
             formset.instance = transfer
             formset.save()
+            if transfer.status == Transfer.Status.SENT:
+                transfer.send_to_inventory(_system_user())
+            elif transfer.status == Transfer.Status.RECEIVED:
+                transfer.send_to_inventory(_system_user())
+                transfer.receive_to_inventory(_system_user())
         return redirect("transfers_list")
     return render(
         request,
@@ -344,6 +353,11 @@ def transfer_edit(request, pk):
                 obj.created_by = transfer.created_by or _system_user()
             obj.save()
             formset.save()
+            if obj.status == Transfer.Status.SENT:
+                obj.send_to_inventory(_system_user())
+            elif obj.status == Transfer.Status.RECEIVED:
+                obj.send_to_inventory(_system_user())
+                obj.receive_to_inventory(_system_user())
         return redirect("transfers_list")
     return render(
         request,

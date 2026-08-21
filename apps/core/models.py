@@ -123,6 +123,15 @@ class ProductStock(TimeStampedModel):
     def __str__(self) -> str:
         return f"{self.branch} - {self.product}"
 
+    @classmethod
+    def get_or_create_stock(cls, branch: "Branch", product: "Product") -> "ProductStock":
+        stock, _ = cls.objects.get_or_create(branch=branch, product=product)
+        return stock
+
+    def apply_delta(self, quantity_delta: Decimal) -> None:
+        self.quantity = self.quantity + quantity_delta
+        self.save(update_fields=["quantity", "updated_at"])
+
 
 class Customer(TimeStampedModel):
     name = models.CharField(max_length=160)
@@ -155,12 +164,52 @@ class Purchase(TimeStampedModel):
     tax = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     notes = models.TextField(blank=True)
+    stock_posted_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-purchase_date", "-created_at"]
 
     def __str__(self) -> str:
         return self.folio
+
+    def post_to_inventory(self, created_by: User) -> None:
+        from django.utils import timezone
+
+        if self.stock_posted_at:
+            return
+        total_subtotal = Decimal("0.00")
+        for item in self.items.select_related("product"):
+            line_total = item.quantity * item.cost_price
+            if item.line_total != line_total:
+                item.line_total = line_total
+                item.save(update_fields=["line_total"])
+            total_subtotal += line_total
+            stock = ProductStock.get_or_create_stock(self.branch, item.product)
+            stock.apply_delta(item.quantity)
+            StockMovement.objects.create(
+                branch=self.branch,
+                product=item.product,
+                movement_type=StockMovement.Type.IN,
+                quantity=item.quantity,
+                reference=self.folio,
+                created_by=created_by,
+            )
+            KardexEntry.objects.create(
+                branch=self.branch,
+                product=item.product,
+                reference=self.folio,
+                movement_type=StockMovement.Type.IN,
+                quantity_in=item.quantity,
+                quantity_out=Decimal("0.00"),
+                balance=stock.quantity,
+                unit_cost=item.cost_price,
+                created_by=created_by,
+            )
+        self.subtotal = total_subtotal
+        self.total = total_subtotal + self.tax
+        self.stock_posted_at = timezone.now()
+        self.status = self.Status.POSTED
+        self.save(update_fields=["subtotal", "total", "stock_posted_at", "status", "updated_at"])
 
 
 class PurchaseItem(models.Model):
@@ -347,6 +396,8 @@ class Transfer(TimeStampedModel):
     notes = models.TextField(blank=True)
     sent_at = models.DateTimeField(null=True, blank=True)
     received_at = models.DateTimeField(null=True, blank=True)
+    stock_sent_at = models.DateTimeField(null=True, blank=True)
+    stock_received_at = models.DateTimeField(null=True, blank=True)
     created_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name="created_transfers")
     received_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name="received_transfers_user", null=True, blank=True)
 
@@ -355,6 +406,71 @@ class Transfer(TimeStampedModel):
 
     def __str__(self) -> str:
         return self.code
+
+    def send_to_inventory(self, created_by: User) -> None:
+        from django.utils import timezone
+
+        if self.stock_sent_at:
+            return
+        for item in self.items.select_related("product"):
+            stock = ProductStock.get_or_create_stock(self.from_branch, item.product)
+            stock.apply_delta(-item.requested_quantity)
+            StockMovement.objects.create(
+                branch=self.from_branch,
+                product=item.product,
+                movement_type=StockMovement.Type.TRANSFER_OUT,
+                quantity=item.requested_quantity,
+                reference=self.code,
+                created_by=created_by,
+            )
+            KardexEntry.objects.create(
+                branch=self.from_branch,
+                product=item.product,
+                reference=self.code,
+                movement_type=StockMovement.Type.TRANSFER_OUT,
+                quantity_in=Decimal("0.00"),
+                quantity_out=item.requested_quantity,
+                balance=stock.quantity,
+                unit_cost=item.product.purchase_price,
+                created_by=created_by,
+            )
+        self.status = self.Status.SENT
+        self.sent_at = self.sent_at or timezone.now()
+        self.stock_sent_at = timezone.now()
+        self.save(update_fields=["status", "sent_at", "stock_sent_at", "updated_at"])
+
+    def receive_to_inventory(self, created_by: User) -> None:
+        from django.utils import timezone
+
+        if self.stock_received_at:
+            return
+        for item in self.items.select_related("product"):
+            received_quantity = item.received_quantity or item.requested_quantity
+            stock = ProductStock.get_or_create_stock(self.to_branch, item.product)
+            stock.apply_delta(received_quantity)
+            StockMovement.objects.create(
+                branch=self.to_branch,
+                product=item.product,
+                movement_type=StockMovement.Type.TRANSFER_IN,
+                quantity=received_quantity,
+                reference=self.code,
+                created_by=created_by,
+            )
+            KardexEntry.objects.create(
+                branch=self.to_branch,
+                product=item.product,
+                reference=self.code,
+                movement_type=StockMovement.Type.TRANSFER_IN,
+                quantity_in=received_quantity,
+                quantity_out=Decimal("0.00"),
+                balance=stock.quantity,
+                unit_cost=item.product.purchase_price,
+                created_by=created_by,
+            )
+        self.status = self.Status.RECEIVED
+        self.received_at = self.received_at or timezone.now()
+        self.stock_received_at = timezone.now()
+        self.save(update_fields=["status", "received_at", "stock_received_at", "updated_at"])
 
 
 class TransferItem(models.Model):
