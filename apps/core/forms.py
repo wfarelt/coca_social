@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Brand, Branch, Category, Customer, Product, Supplier
+from .models import Brand, Branch, Category, Customer, Product, Supplier, Purchase, Transfer
 
 
 class AppFormMixin:
@@ -81,6 +81,28 @@ class CustomerForm(AppFormMixin, forms.ModelForm):
     class Meta:
         model = Customer
         fields = ["name", "tax_id", "phone", "email", "credit_limit", "balance", "is_active"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._apply_bootstrap()
+
+
+class PurchaseForm(AppFormMixin, forms.ModelForm):
+    class Meta:
+        model = Purchase
+        fields = ["branch", "supplier", "folio", "status", "purchase_date", "subtotal", "tax", "total", "notes"]
+        widgets = {"purchase_date": forms.DateInput(attrs={"type": "date"}), "notes": forms.Textarea(attrs={"rows": 3})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._apply_bootstrap()
+
+
+class TransferForm(AppFormMixin, forms.ModelForm):
+    class Meta:
+        model = Transfer
+        fields = ["code", "from_branch", "to_branch", "status", "notes"]
+        widgets = {"notes": forms.Textarea(attrs={"rows": 3})}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

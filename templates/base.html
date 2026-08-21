@@ -30,8 +30,10 @@
         <a class="nav-link {% if request.resolver_match.url_name == 'categories_list' %}active{% endif %}" href="{% url 'categories_list' %}">Categorías</a>
         <a class="nav-link {% if request.resolver_match.url_name == 'brands_list' %}active{% endif %}" href="{% url 'brands_list' %}">Marcas</a>
         <a class="nav-link {% if request.resolver_match.url_name == 'purchases_overview' %}active{% endif %}" href="{% url 'purchases_overview' %}">Compras</a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'purchases_list' %}active{% endif %}" href="{% url 'purchases_list' %}">Compras listado</a>
         <a class="nav-link {% if request.resolver_match.url_name == 'suppliers_list' %}active{% endif %}" href="{% url 'suppliers_list' %}">Proveedores</a>
         <a class="nav-link {% if request.resolver_match.url_name == 'transfers_overview' %}active{% endif %}" href="{% url 'transfers_overview' %}">Traspasos</a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'transfers_list' %}active{% endif %}" href="{% url 'transfers_list' %}">Traspasos listado</a>
         <a class="nav-link {% if request.resolver_match.url_name == 'customers_overview' %}active{% endif %}" href="{% url 'customers_overview' %}">Clientes</a>
         <a class="nav-link {% if request.resolver_match.url_name == 'customers_list' %}active{% endif %}" href="{% url 'customers_list' %}">Clientes catálogo</a>
         <a class="nav-link {% if request.resolver_match.url_name == 'cash_overview' %}active{% endif %}" href="{% url 'cash_overview' %}">Caja</a>

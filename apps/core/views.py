@@ -1,9 +1,10 @@
+from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import HttpResponseBadRequest
 from decimal import Decimal
 
-from .forms import BrandForm, BranchForm, CategoryForm, CustomerForm, ProductForm, SupplierForm
-from .models import Brand, Branch, Category, Customer, Product, Supplier
+from .forms import BrandForm, BranchForm, CategoryForm, CustomerForm, ProductForm, PurchaseForm, SupplierForm, TransferForm
+from .models import Brand, Branch, Category, Customer, Product, Purchase, Supplier, Transfer
 
 
 def _module_context(title, subtitle, actions, stats=None, rows=None):
@@ -170,7 +171,7 @@ def inventory_adjustments(request):
 
 
 def purchases_overview(request):
-    return render(request, "core/module.html", _module_context("Compras", "Órdenes, entradas y proveedores", ["Nueva compra", "Proveedores"], [{"label": "Compras mes", "value": "$184,900"}], [{"a": "C-1209", "b": "Distribuidora XYZ", "c": "$18,240", "d": "Registrada"}]))
+    return render(request, "core/module.html", _module_context("Compras", "Órdenes, entradas y proveedores", ["Listado", "Nueva compra", "Proveedores"], [{"label": "Compras mes", "value": "$184,900"}], [{"a": "C-1209", "b": "Distribuidora XYZ", "c": "$18,240", "d": "Registrada"}]))
 
 
 def new_purchase(request):
@@ -181,8 +182,118 @@ def suppliers(request):
     return render(request, "core/module.html", _module_context("Proveedores", "Catálogo de abastecedores", ["Nuevo proveedor"], [{"label": "Proveedores", "value": "24"}], [{"a": "Distribuidora XYZ", "b": "Activo", "c": "555-1234", "d": "Norte"}]))
 
 
+def _system_user():
+    user_model = get_user_model()
+    user, _ = user_model.objects.get_or_create(username="system", defaults={"is_active": True})
+    return user
+
+
+def purchases_list(request):
+    rows = []
+    for purchase in Purchase.objects.select_related("branch", "supplier").order_by("-purchase_date", "-created_at"):
+        rows.append(
+            {
+                "cells": [purchase.folio, purchase.branch.name, purchase.supplier.name, purchase.purchase_date, purchase.total, purchase.get_status_display()],
+                "edit_url": f"/compras/{purchase.pk}/editar/",
+                "delete_url": f"/compras/{purchase.pk}/eliminar/",
+            }
+        )
+    return render(
+        request,
+        "core/document_list.html",
+        {
+            "page_title": "Compras",
+            "page_subtitle": "Registro de compras y entradas de mercancía",
+            "stats": [{"label": "Compras", "value": Purchase.objects.count()}, {"label": "Registradas", "value": Purchase.objects.filter(status=Purchase.Status.POSTED).count()}],
+            "actions": [{"label": "Nueva compra", "url": "/compras/nueva/"}, {"label": "Proveedores", "url": "/catalogos/proveedores/"}],
+            "headers": ["Folio", "Sucursal", "Proveedor", "Fecha", "Total", "Estado"],
+            "rows": rows,
+        },
+    )
+
+
+def purchase_create(request):
+    form = PurchaseForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        obj = form.save(commit=False)
+        obj.save()
+        return redirect("purchases_list")
+    return render(request, "core/document_form.html", {"form": form, "page_title": "Nueva compra", "page_subtitle": "Alta de compra", "list_url": "/compras/"})
+
+
+def purchase_edit(request, pk):
+    purchase = get_object_or_404(Purchase, pk=pk)
+    form = PurchaseForm(request.POST or None, instance=purchase)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        return redirect("purchases_list")
+    return render(request, "core/document_form.html", {"form": form, "page_title": "Editar compra", "page_subtitle": purchase.folio, "list_url": "/compras/"})
+
+
+def purchase_delete(request, pk):
+    purchase = get_object_or_404(Purchase, pk=pk)
+    if request.method == "POST":
+        purchase.delete()
+        return redirect("purchases_list")
+    return render(request, "core/document_delete.html", {"object": purchase, "page_title": "Eliminar compra", "page_subtitle": purchase.folio, "list_url": "/compras/"})
+
+
+def transfers_list(request):
+    rows = []
+    for transfer in Transfer.objects.select_related("from_branch", "to_branch").order_by("-created_at"):
+        rows.append(
+            {
+                "cells": [transfer.code, transfer.from_branch.name, transfer.to_branch.name, transfer.get_status_display(), transfer.sent_at or "-"],
+                "edit_url": f"/traspasos/{transfer.pk}/editar/",
+                "delete_url": f"/traspasos/{transfer.pk}/eliminar/",
+            }
+        )
+    return render(
+        request,
+        "core/document_list.html",
+        {
+            "page_title": "Traspasos",
+            "page_subtitle": "Envíos entre sucursales y control de estado",
+            "stats": [{"label": "Traspasos", "value": Transfer.objects.count()}, {"label": "Pendientes", "value": Transfer.objects.filter(status=Transfer.Status.DRAFT).count()}],
+            "actions": [{"label": "Nuevo traspaso", "url": "/traspasos/nuevo/"}],
+            "headers": ["Código", "Origen", "Destino", "Estado", "Enviado"],
+            "rows": rows,
+        },
+    )
+
+
+def transfer_create(request):
+    form = TransferForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        obj = form.save(commit=False)
+        obj.created_by = _system_user()
+        obj.save()
+        return redirect("transfers_list")
+    return render(request, "core/document_form.html", {"form": form, "page_title": "Nuevo traspaso", "page_subtitle": "Crea un envío entre sucursales", "list_url": "/traspasos/"})
+
+
+def transfer_edit(request, pk):
+    transfer = get_object_or_404(Transfer, pk=pk)
+    form = TransferForm(request.POST or None, instance=transfer)
+    if request.method == "POST" and form.is_valid():
+        obj = form.save(commit=False)
+        if not obj.created_by_id:
+            obj.created_by = transfer.created_by or _system_user()
+        obj.save()
+        return redirect("transfers_list")
+    return render(request, "core/document_form.html", {"form": form, "page_title": "Editar traspaso", "page_subtitle": transfer.code, "list_url": "/traspasos/"})
+
+
+def transfer_delete(request, pk):
+    transfer = get_object_or_404(Transfer, pk=pk)
+    if request.method == "POST":
+        transfer.delete()
+        return redirect("transfers_list")
+    return render(request, "core/document_delete.html", {"object": transfer, "page_title": "Eliminar traspaso", "page_subtitle": transfer.code, "list_url": "/traspasos/"})
+
+
 def transfers_overview(request):
-    return render(request, "core/module.html", _module_context("Traspasos", "Flujo entre sucursales y recepción parcial", ["Nuevo traspaso"], [{"label": "Pendientes", "value": "7"}], [{"a": "TR-204", "b": "Centro → Norte", "c": "120 uds", "d": "Pendiente"}]))
+    return render(request, "core/module.html", _module_context("Traspasos", "Flujo entre sucursales y recepción parcial", ["Listado", "Nuevo traspaso"], [{"label": "Pendientes", "value": "7"}], [{"a": "TR-204", "b": "Centro → Norte", "c": "120 uds", "d": "Pendiente"}]))
 
 
 def new_transfer(request):
