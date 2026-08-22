@@ -18,6 +18,8 @@ from .models import (
     PurchaseItem,
     Sale,
     SaleItem,
+    SaleReturn,
+    SaleReturnItem,
     StockMovement,
     Supplier,
     Transfer,
@@ -92,12 +94,25 @@ class SaleItemInline(admin.TabularInline):
     extra = 0
 
 
+class SaleReturnItemInline(admin.TabularInline):
+    model = SaleReturnItem
+    extra = 0
+
+
 @admin.register(Sale)
 class SaleAdmin(admin.ModelAdmin):
     list_display = ("folio", "branch", "cashier", "customer", "status", "payment_method", "total")
     search_fields = ("folio", "customer__name")
     list_filter = ("status", "payment_method", "branch")
     inlines = [SaleItemInline]
+
+
+@admin.register(SaleReturn)
+class SaleReturnAdmin(admin.ModelAdmin):
+    list_display = ("code", "branch", "sale", "status", "total", "posted_at")
+    search_fields = ("code", "sale__folio", "branch__name")
+    list_filter = ("status", "branch")
+    inlines = [SaleReturnItemInline]
 
 
 @admin.register(CreditAccount)

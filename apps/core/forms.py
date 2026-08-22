@@ -3,7 +3,7 @@ from django.forms import inlineformset_factory
 from django.contrib.auth.models import Group, Permission, User
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 
-from .models import Brand, Branch, CashMovement, CashShift, Category, Customer, Product, Supplier, Purchase, PurchaseItem, Transfer, TransferItem
+from .models import Brand, Branch, CashMovement, CashShift, Category, Customer, Product, SaleReturn, SaleReturnItem, Supplier, Purchase, PurchaseItem, Transfer, TransferItem
 
 
 class AppFormMixin:
@@ -151,6 +151,37 @@ class TransferItemForm(AppFormMixin, forms.ModelForm):
         return cleaned_data
 
 
+class SaleReturnForm(AppFormMixin, forms.ModelForm):
+    class Meta:
+        model = SaleReturn
+        fields = ["branch", "sale", "code", "reason", "status"]
+        widgets = {"reason": forms.Textarea(attrs={"rows": 3})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._apply_bootstrap()
+
+
+class SaleReturnItemForm(AppFormMixin, forms.ModelForm):
+    class Meta:
+        model = SaleReturnItem
+        fields = ["product", "quantity", "unit_price", "line_total"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["line_total"].required = False
+        self.fields["line_total"].widget.attrs["readonly"] = True
+        self._apply_bootstrap()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        quantity = cleaned_data.get("quantity")
+        unit_price = cleaned_data.get("unit_price")
+        if quantity is not None and unit_price is not None:
+            cleaned_data["line_total"] = quantity * unit_price
+        return cleaned_data
+
+
 class CashShiftOpenForm(AppFormMixin, forms.ModelForm):
     class Meta:
         model = CashShift
@@ -245,3 +276,4 @@ class GroupAdminForm(AppFormMixin, forms.ModelForm):
 
 PurchaseItemFormSet = inlineformset_factory(Purchase, PurchaseItem, form=PurchaseItemForm, extra=3, can_delete=True)
 TransferItemFormSet = inlineformset_factory(Transfer, TransferItem, form=TransferItemForm, extra=3, can_delete=True)
+SaleReturnItemFormSet = inlineformset_factory(SaleReturn, SaleReturnItem, form=SaleReturnItemForm, extra=3, can_delete=True)

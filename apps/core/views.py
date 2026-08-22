@@ -2,6 +2,7 @@ from collections import defaultdict
 from datetime import date, timedelta
 
 from django.conf import settings
+from django.contrib.auth.models import Group
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import F, Sum
@@ -19,6 +20,8 @@ from .forms import (
     BranchForm,
     CategoryForm,
     CustomerForm,
+    SaleReturnForm,
+    SaleReturnItemFormSet,
     ProductForm,
     PurchaseForm,
     PurchaseItemFormSet,
@@ -26,7 +29,7 @@ from .forms import (
     TransferForm,
     TransferItemFormSet,
 )
-from .models import Brand, Branch, CashMovement, CashShift, Category, CreditAccount, Customer, Product, ProductStock, Purchase, Sale, SaleItem, Supplier, Transfer
+from .models import Brand, Branch, CashMovement, CashShift, Category, CreditAccount, Customer, Product, ProductStock, Purchase, Sale, SaleItem, SaleReturn, Supplier, Transfer
 
 
 def _module_context(title, subtitle, actions, stats=None, rows=None):
@@ -398,7 +401,101 @@ def _active_cash_shift(branch):
 
 
 def sales_returns(request):
-    return render(request, "core/module.html", _module_context("Devoluciones", "Control de notas de devolución y ajustes", ["Registrar devolución", "Ver pendientes"], [{"label": "Pendientes", "value": "6"}, {"label": "Monto", "value": "$1,240"}], [{"a": "DEV-11", "b": "V-1023", "c": "$180", "d": "Pendiente"}]))
+    returns = SaleReturn.objects.select_related("branch", "sale", "created_by").order_by("-created_at")
+    rows = [
+        {
+            "pk": sale_return.pk,
+            "a": sale_return.code,
+            "b": sale_return.sale.folio,
+            "c": f"${sale_return.total}",
+            "d": sale_return.get_status_display(),
+        }
+        for sale_return in returns
+    ]
+    return render(
+        request,
+        "core/document_list.html",
+        {
+            "page_title": "Devoluciones",
+            "page_subtitle": "Control de notas de devolución y ajustes",
+            "stats": [
+                {"label": "Devoluciones", "value": str(returns.count())},
+                {"label": "Monto", "value": f"${returns.aggregate(total=Sum('total'))['total'] or 0}"},
+            ],
+            "actions": [{"label": "Registrar devolución", "url": "/ventas/devoluciones/nueva/"}],
+            "headers": ["Código", "Venta", "Monto", "Estado"],
+            "rows": [{"cells": [row["a"], row["b"], row["c"], row["d"]], "edit_url": f"/ventas/devoluciones/{row['pk']}/editar/", "delete_url": f"/ventas/devoluciones/{row['pk']}/eliminar/"} for row in rows],
+        },
+    )
+
+
+def sale_return_create(request):
+    form = SaleReturnForm(request.POST or None)
+    formset = SaleReturnItemFormSet(request.POST or None)
+    if request.method == "POST" and form.is_valid() and formset.is_valid():
+        with transaction.atomic():
+            sale_return = form.save(commit=False)
+            sale_return.created_by = request.user if request.user.is_authenticated else _system_user()
+            sale_return.save()
+            formset.instance = sale_return
+            formset.save()
+            sale_return.post_to_inventory(request.user if request.user.is_authenticated else _system_user())
+        return redirect("sales_returns")
+    return render(
+        request,
+        "core/document_items_form.html",
+        {
+            "form": form,
+            "formset": formset,
+            "page_title": "Nueva devolución",
+            "page_subtitle": "Registra mercancía devuelta y ajusta inventario",
+            "list_url": "/ventas/devoluciones/",
+            "items_title": "Líneas de devolución",
+            "items_subtitle": "Captura los productos devueltos y sus cantidades.",
+            "item_headers": ["Producto", "Cantidad", "Precio unitario", "Total"],
+        },
+    )
+
+
+def sale_return_edit(request, pk):
+    sale_return = get_object_or_404(SaleReturn, pk=pk)
+    form = SaleReturnForm(request.POST or None, instance=sale_return)
+    formset = SaleReturnItemFormSet(request.POST or None, instance=sale_return)
+    if request.method == "POST" and form.is_valid() and formset.is_valid():
+        with transaction.atomic():
+            if sale_return.posted_at:
+                sale_return.reverse_inventory(request.user if request.user.is_authenticated else _system_user())
+            sale_return = form.save(commit=False)
+            sale_return.status = SaleReturn.Status.DRAFT
+            sale_return.posted_at = None
+            sale_return.save()
+            formset.save()
+            sale_return.post_to_inventory(request.user if request.user.is_authenticated else _system_user())
+        return redirect("sales_returns")
+    return render(
+        request,
+        "core/document_items_form.html",
+        {
+            "form": form,
+            "formset": formset,
+            "page_title": "Editar devolución",
+            "page_subtitle": sale_return.code,
+            "list_url": "/ventas/devoluciones/",
+            "items_title": "Líneas de devolución",
+            "items_subtitle": "Corrige productos y cantidades.",
+            "item_headers": ["Producto", "Cantidad", "Precio unitario", "Total"],
+        },
+    )
+
+
+def sale_return_delete(request, pk):
+    sale_return = get_object_or_404(SaleReturn, pk=pk)
+    if request.method == "POST":
+        if sale_return.posted_at:
+            sale_return.reverse_inventory(request.user if request.user.is_authenticated else _system_user())
+        sale_return.delete()
+        return redirect("sales_returns")
+    return render(request, "core/document_delete.html", {"object": sale_return, "page_title": "Eliminar devolución", "page_subtitle": sale_return.code, "list_url": "/ventas/devoluciones/"})
 
 
 def inventory_overview(request):
@@ -791,7 +888,31 @@ def _cash_movements(request, *, movement_type, page_title, page_subtitle):
 
 
 def reports_overview(request):
-    return render(request, "core/module.html", _module_context("Reportes", "Ventas, compras, inventario y caja", ["Exportar PDF", "Exportar Excel"], [{"label": "Reportes", "value": "7"}], []))
+    sales_total = Sale.objects.exclude(status=Sale.Status.CANCELED).aggregate(total=Sum("total"))["total"] or Decimal("0.00")
+    purchases_total = Purchase.objects.aggregate(total=Sum("total"))["total"] or Decimal("0.00")
+    returns_total = SaleReturn.objects.aggregate(total=Sum("total"))["total"] or Decimal("0.00")
+    credits_total = CreditAccount.objects.filter(status__in=[CreditAccount.Status.OPEN, CreditAccount.Status.PARTIAL, CreditAccount.Status.OVERDUE]).aggregate(total=Sum("remaining_balance"))["total"] or Decimal("0.00")
+    low_stock_count = ProductStock.objects.filter(quantity__gt=0, quantity__lte=F("product__min_stock")).count()
+    out_stock_count = ProductStock.objects.filter(quantity__lte=0).count()
+    return render(
+        request,
+        "core/module.html",
+        _module_context(
+            "Reportes",
+            "Ventas, compras, inventario, caja y devoluciones",
+            ["Exportar PDF", "Exportar Excel"],
+            [
+                {"label": "Ventas", "value": f"${sales_total}"},
+                {"label": "Compras", "value": f"${purchases_total}"},
+                {"label": "Devoluciones", "value": f"${returns_total}"},
+                {"label": "Créditos", "value": f"${credits_total}"},
+            ],
+            [
+                {"a": "Inventario", "b": "Stock crítico", "c": f"{low_stock_count} bajo", "d": "Alerta"},
+                {"a": "Inventario", "b": "Sin stock", "c": f"{out_stock_count} agotados", "d": "Alerta"},
+            ],
+        ),
+    )
 
 
 def admin_overview(request):

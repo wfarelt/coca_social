@@ -356,6 +356,114 @@ class SaleItem(models.Model):
         super().save(*args, **kwargs)
 
 
+class SaleReturn(TimeStampedModel):
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Borrador"
+        POSTED = "posted", "Aplicada"
+        CANCELED = "canceled", "Cancelada"
+
+    branch = models.ForeignKey(Branch, on_delete=models.PROTECT, related_name="sale_returns")
+    sale = models.ForeignKey(Sale, on_delete=models.PROTECT, related_name="returns")
+    code = models.CharField(max_length=40, unique=True)
+    reason = models.CharField(max_length=160, blank=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
+    subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    posted_at = models.DateTimeField(null=True, blank=True)
+    created_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name="sale_returns")
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return self.code
+
+    def post_to_inventory(self, created_by: User) -> None:
+        from django.utils import timezone
+
+        if self.posted_at:
+            return
+        subtotal = Decimal("0.00")
+        for item in self.items.select_related("product"):
+            line_total = item.quantity * item.unit_price
+            if item.line_total != line_total:
+                item.line_total = line_total
+                item.save(update_fields=["line_total"])
+            subtotal += line_total
+            stock = ProductStock.get_or_create_stock(self.branch, item.product)
+            stock.apply_delta(item.quantity)
+            StockMovement.objects.create(
+                branch=self.branch,
+                product=item.product,
+                movement_type=StockMovement.Type.IN,
+                quantity=item.quantity,
+                reference=self.code,
+                created_by=created_by,
+            )
+            KardexEntry.objects.create(
+                branch=self.branch,
+                product=item.product,
+                reference=self.code,
+                movement_type=StockMovement.Type.IN,
+                quantity_in=item.quantity,
+                quantity_out=Decimal("0.00"),
+                balance=stock.quantity,
+                unit_cost=item.unit_price,
+                created_by=created_by,
+            )
+        self.subtotal = subtotal
+        self.total = subtotal
+        self.status = self.Status.POSTED
+        self.posted_at = timezone.now()
+        self.save(update_fields=["subtotal", "total", "status", "posted_at", "updated_at"])
+
+    def reverse_inventory(self, created_by: User) -> None:
+        from django.utils import timezone
+
+        if self.status == self.Status.CANCELED:
+            return
+        for item in self.items.select_related("product"):
+            stock = ProductStock.get_or_create_stock(self.branch, item.product)
+            stock.apply_delta(-item.quantity)
+            StockMovement.objects.create(
+                branch=self.branch,
+                product=item.product,
+                movement_type=StockMovement.Type.OUT,
+                quantity=item.quantity,
+                reference=f"REV-{self.code}",
+                created_by=created_by,
+            )
+            KardexEntry.objects.create(
+                branch=self.branch,
+                product=item.product,
+                reference=f"REV-{self.code}",
+                movement_type=StockMovement.Type.OUT,
+                quantity_in=Decimal("0.00"),
+                quantity_out=item.quantity,
+                balance=stock.quantity,
+                unit_cost=item.unit_price,
+                created_by=created_by,
+            )
+        self.status = self.Status.CANCELED
+        self.save(update_fields=["status", "updated_at"])
+
+
+class SaleReturnItem(models.Model):
+    sale_return = models.ForeignKey(SaleReturn, on_delete=models.CASCADE, related_name="items")
+    product = models.ForeignKey(Product, on_delete=models.PROTECT)
+    quantity = models.DecimalField(max_digits=14, decimal_places=2)
+    unit_price = models.DecimalField(max_digits=12, decimal_places=2)
+    line_total = models.DecimalField(max_digits=12, decimal_places=2)
+
+    def __str__(self) -> str:
+        return f"{self.sale_return} - {self.product}"
+
+    def save(self, *args, **kwargs):
+        if self.quantity is not None and self.unit_price is not None:
+            self.line_total = self.quantity * self.unit_price
+        super().save(*args, **kwargs)
+
+
 class CreditAccount(TimeStampedModel):
     class Status(models.TextChoices):
         OPEN = "open", "Abierta"
