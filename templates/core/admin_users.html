@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Usuarios | Coca Social{% endblock %}
+{% block page_title %}Usuarios{% endblock %}
+{% block content %}
+<div class="panel">
+  <div class="panel-header">
+    <div>
+      <h2 class="panel-title mb-1">Usuarios</h2>
+      <p class="panel-subtitle mb-0">Operadores, cajeros y administradores</p>
+    </div>
+    <a class="btn btn-primary btn-sm" href="{% url 'admin_user_create' %}">Nuevo usuario</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle table-clean mb-0">
+      <thead><tr><th>Nombre</th><th>Correo</th><th>Roles</th><th>Estado</th><th></th></tr></thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td>{{ row.a }}</td>
+          <td>{{ row.b }}</td>
+          <td>{{ row.c }}</td>
+          <td><span class="badge badge-soft">{{ row.d }}</span></td>
+          <td class="text-end">
+            <div class="btn-group btn-group-sm">
+              <a class="btn btn-outline-primary" href="{% url 'admin_user_edit' row.pk %}">Editar</a>
+              <a class="btn btn-outline-danger" href="{% url 'admin_user_delete' row.pk %}">Eliminar</a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="text-center text-muted py-4">No hay usuarios registrados</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

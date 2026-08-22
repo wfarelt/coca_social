@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}{{ page_title }} | Coca Social{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-xl-6">
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">{{ page_title }}</h2>
+          <p class="panel-subtitle mb-0">{{ page_subtitle }}</p>
+        </div>
+      </div>
+      <p class="mb-4">Esta acción eliminará <strong>{{ object }}</strong>. No se puede deshacer.</p>
+      <form method="post" class="d-flex justify-content-end gap-2">
+        {% csrf_token %}
+        <a class="btn btn-outline-secondary" href="{% url list_url %}">Cancelar</a>
+        <button class="btn btn-danger" type="submit">Eliminar</button>
+      </form>
+    </section>
+  </div>
+</div>
+{% endblock %}

@@ -794,7 +794,25 @@ def reports_overview(request):
 
 
 def admin_overview(request):
-    return render(request, "core/module.html", _module_context("Administración", "Sucursales, usuarios, roles y configuración", ["Sucursales", "Usuarios"], [{"label": "Roles", "value": "4"}], []))
+    user_count = get_user_model().objects.count()
+    role_count = Group.objects.count()
+    return render(
+        request,
+        "core/module.html",
+        _module_context(
+            "Administración",
+            "Sucursales, usuarios, roles y configuración",
+            ["Sucursales", "Usuarios", "Roles", "Configuración"],
+            [
+                {"label": "Usuarios", "value": str(user_count)},
+                {"label": "Roles", "value": str(role_count)},
+            ],
+            [
+                {"a": "Usuarios", "b": "Altas y permisos", "c": f"{user_count} activos", "d": "Sistema"},
+                {"a": "Roles", "b": "Grupos y permisos", "c": f"{role_count} grupos", "d": "Sistema"},
+            ],
+        ),
+    )
 
 
 def admin_branches(request):
@@ -802,7 +820,103 @@ def admin_branches(request):
 
 
 def admin_users(request):
-    return render(request, "core/module.html", _module_context("Usuarios", "Operadores, cajeros y administradores", ["Nuevo usuario"], [{"label": "Usuarios", "value": "12"}], []))
+    users = get_user_model().objects.prefetch_related("groups").order_by("username")
+    rows = [
+        {
+            "pk": user.pk,
+            "a": user.get_full_name() or user.username,
+            "b": user.email or "-",
+            "c": ", ".join(group.name for group in user.groups.all()) or "Sin rol",
+            "d": "Activo" if user.is_active else "Inactivo",
+        }
+        for user in users
+    ]
+    return render(
+        request,
+        "core/admin_users.html",
+        {
+            "users": users,
+            "rows": rows,
+            "page_title": "Usuarios",
+            "page_subtitle": "Operadores, cajeros y administradores",
+        },
+    )
+
+
+def admin_user_create(request):
+    form = UserAdminCreateForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        user = form.save()
+        form.save_m2m()
+        return redirect("admin_users")
+    return render(request, "core/admin_user_form.html", {"form": form, "page_title": "Nuevo usuario", "page_subtitle": "Alta de operador"})
+
+
+def admin_user_edit(request, pk):
+    user = get_object_or_404(get_user_model(), pk=pk)
+    form = UserAdminChangeForm(request.POST or None, instance=user)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        form.save_m2m()
+        return redirect("admin_users")
+    return render(request, "core/admin_user_form.html", {"form": form, "page_title": "Editar usuario", "page_subtitle": user.username})
+
+
+def admin_user_delete(request, pk):
+    user = get_object_or_404(get_user_model(), pk=pk)
+    if request.method == "POST":
+        user.delete()
+        return redirect("admin_users")
+    return render(request, "core/admin_delete.html", {"object": user, "list_url": "admin_users", "page_title": "Eliminar usuario", "page_subtitle": user.username})
+
+
+def admin_roles(request):
+    groups = Group.objects.prefetch_related("permissions").order_by("name")
+    rows = [
+        {
+            "pk": group.pk,
+            "a": group.name,
+            "b": f"{group.permissions.count()} permisos",
+            "c": f"{group.user_set.count()} usuarios",
+            "d": "Rol activo",
+        }
+        for group in groups
+    ]
+    return render(
+        request,
+        "core/admin_roles.html",
+        {
+            "groups": groups,
+            "rows": rows,
+            "page_title": "Roles",
+            "page_subtitle": "Grupos y permisos del sistema",
+        },
+    )
+
+
+def admin_role_create(request):
+    form = GroupAdminForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        return redirect("admin_roles")
+    return render(request, "core/admin_role_form.html", {"form": form, "page_title": "Nuevo rol", "page_subtitle": "Definir permisos"})
+
+
+def admin_role_edit(request, pk):
+    group = get_object_or_404(Group, pk=pk)
+    form = GroupAdminForm(request.POST or None, instance=group)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        return redirect("admin_roles")
+    return render(request, "core/admin_role_form.html", {"form": form, "page_title": "Editar rol", "page_subtitle": group.name})
+
+
+def admin_role_delete(request, pk):
+    group = get_object_or_404(Group, pk=pk)
+    if request.method == "POST":
+        group.delete()
+        return redirect("admin_roles")
+    return render(request, "core/admin_delete.html", {"object": group, "list_url": "admin_roles", "page_title": "Eliminar rol", "page_subtitle": group.name})
 
 
 def admin_roles(request):

@@ -1,5 +1,7 @@
 from django import forms
 from django.forms import inlineformset_factory
+from django.contrib.auth.models import Group, Permission, User
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 
 from .models import Brand, Branch, CashMovement, CashShift, Category, Customer, Product, Supplier, Purchase, PurchaseItem, Transfer, TransferItem
 
@@ -175,6 +177,70 @@ class CashCloseForm(AppFormMixin, forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._apply_bootstrap()
+
+
+class UserAdminCreateForm(AppFormMixin, UserCreationForm):
+    groups = forms.ModelMultipleChoiceField(queryset=Group.objects.all(), required=False, widget=forms.SelectMultiple)
+    user_permissions = forms.ModelMultipleChoiceField(queryset=Permission.objects.select_related("content_type").all(), required=False, widget=forms.SelectMultiple)
+
+    class Meta(UserCreationForm.Meta):
+        model = User
+        fields = [
+            "username",
+            "first_name",
+            "last_name",
+            "email",
+            "is_active",
+            "is_staff",
+            "is_superuser",
+            "groups",
+            "user_permissions",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._apply_bootstrap()
+        self.fields["groups"].widget.attrs["class"] = "form-select select2-no-search"
+        self.fields["user_permissions"].widget.attrs["class"] = "form-select select2-no-search"
+
+
+class UserAdminChangeForm(AppFormMixin, UserChangeForm):
+    password = None
+    groups = forms.ModelMultipleChoiceField(queryset=Group.objects.all(), required=False, widget=forms.SelectMultiple)
+    user_permissions = forms.ModelMultipleChoiceField(queryset=Permission.objects.select_related("content_type").all(), required=False, widget=forms.SelectMultiple)
+
+    class Meta(UserChangeForm.Meta):
+        model = User
+        fields = [
+            "username",
+            "first_name",
+            "last_name",
+            "email",
+            "is_active",
+            "is_staff",
+            "is_superuser",
+            "groups",
+            "user_permissions",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._apply_bootstrap()
+        self.fields["groups"].widget.attrs["class"] = "form-select select2-no-search"
+        self.fields["user_permissions"].widget.attrs["class"] = "form-select select2-no-search"
+
+
+class GroupAdminForm(AppFormMixin, forms.ModelForm):
+    permissions = forms.ModelMultipleChoiceField(queryset=Permission.objects.select_related("content_type").all(), required=False, widget=forms.SelectMultiple)
+
+    class Meta:
+        model = Group
+        fields = ["name", "permissions"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._apply_bootstrap()
+        self.fields["permissions"].widget.attrs["class"] = "form-select select2-no-search"
 
 
 PurchaseItemFormSet = inlineformset_factory(Purchase, PurchaseItem, form=PurchaseItemForm, extra=3, can_delete=True)

@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Roles | Coca Social{% endblock %}
+{% block page_title %}Roles{% endblock %}
+{% block content %}
+<div class="panel">
+  <div class="panel-header">
+    <div>
+      <h2 class="panel-title mb-1">Roles</h2>
+      <p class="panel-subtitle mb-0">Grupos y permisos del sistema</p>
+    </div>
+    <a class="btn btn-primary btn-sm" href="{% url 'admin_role_create' %}">Nuevo rol</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle table-clean mb-0">
+      <thead><tr><th>Nombre</th><th>Permisos</th><th>Usuarios</th><th>Estado</th><th></th></tr></thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td>{{ row.a }}</td>
+          <td>{{ row.b }}</td>
+          <td>{{ row.c }}</td>
+          <td><span class="badge badge-soft">{{ row.d }}</span></td>
+          <td class="text-end">
+            <div class="btn-group btn-group-sm">
+              <a class="btn btn-outline-primary" href="{% url 'admin_role_edit' row.pk %}">Editar</a>
+              <a class="btn btn-outline-danger" href="{% url 'admin_role_delete' row.pk %}">Eliminar</a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="text-center text-muted py-4">No hay roles registrados</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
