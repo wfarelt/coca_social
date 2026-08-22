@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}Arqueo y cierre | Coca Social{% endblock %}
+{% block page_title %}Arqueo y cierre{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-12 col-xl-5">
+    <section class="panel h-100">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">Cerrar turno</h2>
+          <p class="panel-subtitle mb-0">Registra el efectivo contado y la diferencia final</p>
+        </div>
+        <a class="btn btn-outline-primary btn-sm" href="{% url 'cash_overview' %}">Volver</a>
+      </div>
+      {% if open_shift %}
+      <div class="cash-summary mb-3">
+        <div><span>Esperado</span><strong>${{ open_shift.expected_cash }}</strong></div>
+        <div><span>Contado</span><strong>${{ open_shift.counted_cash }}</strong></div>
+        <div><span>Diferencia</span><strong>${{ open_shift.difference }}</strong></div>
+        <div><span>Estado</span><strong>{{ open_shift.get_status_display }}</strong></div>
+      </div>
+      {% else %}
+      <div class="alert alert-warning">No hay turno abierto para cerrar.</div>
+      {% endif %}
+      {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+      {% endif %}
+      <form method="post" class="row g-3">
+        {% csrf_token %}
+        <div class="col-12">
+          <label class="form-label" for="{{ form.counted_cash.id_for_label }}">Efectivo contado</label>
+          {{ form.counted_cash }}
+          {{ form.counted_cash.errors }}
+        </div>
+        <div class="col-12 d-flex justify-content-end gap-2">
+          <button class="btn btn-primary" type="submit">Cerrar turno</button>
+        </div>
+      </form>
+    </section>
+  </div>
+  <div class="col-12 col-xl-7">
+    <section class="panel h-100">
+      <div class="panel-header"><h2 class="panel-title">Movimientos del turno</h2></div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle table-clean mb-0">
+          <thead><tr><th>Tipo</th><th>Concepto</th><th>Monto</th><th>Usuario</th></tr></thead>
+          <tbody>
+            {% for movement in movements %}
+            <tr>
+              <td>{{ movement.get_movement_type_display }}</td>
+              <td>{{ movement.concept }}</td>
+              <td>${{ movement.amount }}</td>
+              <td>{{ movement.created_by }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-muted py-4">Sin movimientos registrados</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

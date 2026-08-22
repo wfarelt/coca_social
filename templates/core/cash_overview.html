@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% block title %}Caja | Coca Social{% endblock %}
+{% block page_title %}Caja{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-12 col-md-6 col-xl-3"><article class="metric-card tone-primary"><span class="metric-label">Sucursal activa</span><div class="metric-value">{{ branch|default:'-' }}</div></article></div>
+  <div class="col-12 col-md-6 col-xl-3"><article class="metric-card tone-success"><span class="metric-label">Turno abierto</span><div class="metric-value">{% if open_shift %}Sí{% else %}No{% endif %}</div></article></div>
+  <div class="col-12 col-md-6 col-xl-3"><article class="metric-card tone-warning"><span class="metric-label">Efectivo esperado</span><div class="metric-value">${{ open_shift.expected_cash|default:'0.00' }}</div></article></div>
+  <div class="col-12 col-md-6 col-xl-3"><article class="metric-card tone-danger"><span class="metric-label">Diferencia</span><div class="metric-value">${{ open_shift.difference|default:'0.00' }}</div></article></div>
+</div>
+
+<div class="row g-3">
+  <div class="col-12 col-xl-5">
+    <section class="panel h-100">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">Turno actual</h2>
+          <p class="panel-subtitle mb-0">Resumen operativo de caja</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+          <a class="btn btn-outline-primary btn-sm" href="{% url 'cash_opening' %}">Abrir turno</a>
+          <a class="btn btn-outline-primary btn-sm" href="{% url 'cash_movements' %}">Movimientos</a>
+          <a class="btn btn-outline-primary btn-sm" href="{% url 'cash_expenses' %}">Gastos</a>
+          <a class="btn btn-primary btn-sm" href="{% url 'cash_close' %}">Cerrar turno</a>
+        </div>
+      </div>
+      {% if open_shift %}
+      <div class="cash-summary mb-3">
+        <div><span>Inicio</span><strong>${{ open_shift.initial_amount }}</strong></div>
+        <div><span>Ingresos</span><strong>${{ open_shift.expected_cash }}</strong></div>
+        <div><span>Contado</span><strong>${{ open_shift.counted_cash }}</strong></div>
+        <div><span>Diferencia</span><strong>${{ open_shift.difference }}</strong></div>
+      </div>
+      <p class="text-muted mb-0">Sucursal: {{ open_shift.branch }} · Usuario: {{ open_shift.user }} · Estado: {{ open_shift.get_status_display }}</p>
+      {% else %}
+      <div class="alert alert-warning mb-0">No hay un turno abierto en este momento.</div>
+      {% endif %}
+    </section>
+  </div>
+  <div class="col-12 col-xl-7">
+    <section class="panel h-100">
+      <div class="panel-header"><h2 class="panel-title">Movimientos recientes</h2></div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle table-clean mb-0">
+          <thead><tr><th>Tipo</th><th>Concepto</th><th>Monto</th><th>Usuario</th></tr></thead>
+          <tbody>
+            {% for movement in movements %}
+            <tr>
+              <td>{{ movement.get_movement_type_display }}</td>
+              <td>{{ movement.concept }}</td>
+              <td>${{ movement.amount }}</td>
+              <td>{{ movement.created_by }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-muted py-4">Sin movimientos registrados</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="row g-3 mt-0">
+  <div class="col-12">
+    <section class="panel">
+      <div class="panel-header"><h2 class="panel-title">Turnos recientes</h2></div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle table-clean mb-0">
+          <thead><tr><th>Sucursal</th><th>Usuario</th><th>Inicio</th><th>Cierre</th><th>Estado</th><th>Diferencia</th></tr></thead>
+          <tbody>
+            {% for shift in recent_shifts %}
+            <tr>
+              <td>{{ shift.branch }}</td>
+              <td>{{ shift.user }}</td>
+              <td>{{ shift.opened_at|date:"d/m/Y H:i" }}</td>
+              <td>{% if shift.closed_at %}{{ shift.closed_at|date:"d/m/Y H:i" }}{% else %}-{% endif %}</td>
+              <td>{{ shift.get_status_display }}</td>
+              <td>${{ shift.difference }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="text-center text-muted py-4">Todavía no hay turnos registrados</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

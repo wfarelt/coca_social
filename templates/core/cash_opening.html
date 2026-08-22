@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Apertura de caja | Coca Social{% endblock %}
+{% block page_title %}Apertura de caja{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-xl-7">
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">Abrir turno</h2>
+          <p class="panel-subtitle mb-0">Registra la sucursal y el fondo inicial</p>
+        </div>
+        <a class="btn btn-outline-primary btn-sm" href="{% url 'cash_overview' %}">Volver</a>
+      </div>
+
+      {% if open_shift %}
+      <div class="alert alert-warning">Ya existe un turno abierto para esta sucursal. Puedes consultarlo desde el panel de caja.</div>
+      {% endif %}
+
+      {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <form method="post" class="row g-3">
+        {% csrf_token %}
+        <div class="col-12 col-md-8">
+          <label class="form-label" for="{{ form.branch.id_for_label }}">Sucursal</label>
+          {{ form.branch }}
+          {{ form.branch.errors }}
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label" for="{{ form.initial_amount.id_for_label }}">Monto inicial</label>
+          {{ form.initial_amount }}
+          {{ form.initial_amount.errors }}
+        </div>
+        <div class="col-12 d-flex justify-content-end gap-2">
+          <a class="btn btn-outline-secondary" href="{% url 'cash_overview' %}">Cancelar</a>
+          <button class="btn btn-primary" type="submit">Abrir turno</button>
+        </div>
+      </form>
+    </section>
+  </div>
+</div>
+{% endblock %}

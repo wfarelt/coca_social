@@ -1,7 +1,7 @@
 from django import forms
 from django.forms import inlineformset_factory
 
-from .models import Brand, Branch, Category, Customer, Product, Supplier, Purchase, PurchaseItem, Transfer, TransferItem
+from .models import Brand, Branch, CashMovement, CashShift, Category, Customer, Product, Supplier, Purchase, PurchaseItem, Transfer, TransferItem
 
 
 class AppFormMixin:
@@ -147,6 +147,34 @@ class TransferItemForm(AppFormMixin, forms.ModelForm):
         if requested_quantity is not None and received_quantity in (None, ""):
             cleaned_data["received_quantity"] = requested_quantity
         return cleaned_data
+
+
+class CashShiftOpenForm(AppFormMixin, forms.ModelForm):
+    class Meta:
+        model = CashShift
+        fields = ["branch", "initial_amount"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._apply_bootstrap()
+
+
+class CashMovementForm(AppFormMixin, forms.ModelForm):
+    class Meta:
+        model = CashMovement
+        fields = ["movement_type", "concept", "amount"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._apply_bootstrap()
+
+
+class CashCloseForm(AppFormMixin, forms.Form):
+    counted_cash = forms.DecimalField(max_digits=12, decimal_places=2, min_value=0)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._apply_bootstrap()
 
 
 PurchaseItemFormSet = inlineformset_factory(Purchase, PurchaseItem, form=PurchaseItemForm, extra=3, can_delete=True)

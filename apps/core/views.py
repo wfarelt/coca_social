@@ -1,13 +1,19 @@
-from datetime import date
+from collections import defaultdict
+from datetime import date, timedelta
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.db.models import F, Sum
 from django.urls import reverse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import HttpResponseBadRequest
 from decimal import Decimal
+from django.utils import timezone
 
 from .forms import (
+    CashCloseForm,
+    CashMovementForm,
+    CashShiftOpenForm,
     BrandForm,
     BranchForm,
     CategoryForm,
@@ -19,7 +25,7 @@ from .forms import (
     TransferForm,
     TransferItemFormSet,
 )
-from .models import Brand, Branch, CashMovement, CashShift, Category, Customer, Product, Purchase, Sale, SaleItem, Supplier, Transfer
+from .models import Brand, Branch, CashMovement, CashShift, Category, CreditAccount, Customer, Product, ProductStock, Purchase, Sale, SaleItem, Supplier, Transfer
 
 
 def _module_context(title, subtitle, actions, stats=None, rows=None):
@@ -33,28 +39,129 @@ def _module_context(title, subtitle, actions, stats=None, rows=None):
 
 
 def dashboard(request):
+    branch = Branch.objects.filter(is_active=True).order_by("name").first()
+    today = timezone.localdate()
+    week_start = today - timedelta(days=6)
+
+    sales_qs = Sale.objects.select_related("branch", "customer").prefetch_related("items__product").filter(sold_at__date__gte=week_start)
+    if branch is not None:
+        sales_qs = sales_qs.filter(branch=branch)
+
+    today_sales = sales_qs.filter(sold_at__date=today)
+    today_sales_total = sum((sale.total for sale in today_sales), Decimal("0.00"))
+    today_sales_count = today_sales.count()
+    today_cost = Decimal("0.00")
+    today_revenue = Decimal("0.00")
+    for sale in today_sales:
+        today_revenue += sale.total
+        for item in sale.items.all():
+            today_cost += item.quantity * item.product.purchase_price
+
+    utility = today_revenue - today_cost
+    low_stock_qs = ProductStock.objects.select_related("branch", "product").filter(quantity__gt=0, quantity__lte=F("product__min_stock"))
+    out_stock_qs = ProductStock.objects.select_related("branch", "product").filter(quantity__lte=0)
+    if branch is not None:
+        low_stock_qs = low_stock_qs.filter(branch=branch)
+        out_stock_qs = out_stock_qs.filter(branch=branch)
+
+    recent_sales = [
+        {
+            "folio": sale.folio,
+            "customer": sale.customer.name if sale.customer else "Consumidor final",
+            "amount": f"${sale.total}",
+            "status": sale.get_status_display(),
+        }
+        for sale in sales_qs.order_by("-sold_at", "-created_at")[:5]
+    ]
+    if not recent_sales:
+        recent_sales = [{"folio": "Sin ventas", "customer": "-", "amount": "$0", "status": "Pendiente"}]
+
+    low_stock = [
+        {
+            "product": stock.product.name,
+            "branch": stock.branch.name,
+            "stock": str(stock.quantity),
+            "state": "Agotado" if stock.quantity <= 0 else "Bajo",
+        }
+        for stock in low_stock_qs.order_by("product__name")[:5]
+    ]
+    if not low_stock:
+        low_stock = [{"product": "Sin alertas", "branch": branch.name if branch else "-", "stock": "0", "state": "Normal"}]
+
+    pending_transfers = [
+        {
+            "code": transfer.code,
+            "from": transfer.from_branch.name,
+            "to": transfer.to_branch.name,
+            "state": transfer.get_status_display(),
+        }
+        for transfer in Transfer.objects.select_related("from_branch", "to_branch").filter(status__in=[Transfer.Status.DRAFT, Transfer.Status.SENT]).order_by("-created_at")[:5]
+    ]
+    if not pending_transfers:
+        pending_transfers = [{"code": "Sin pendientes", "from": "-", "to": "-", "state": "OK"}]
+
+    top_product_map = defaultdict(lambda: {"qty": Decimal("0.00"), "revenue": Decimal("0.00")})
+    for sale in sales_qs:
+        for item in sale.items.select_related("product"):
+            bucket = top_product_map[item.product_id]
+            bucket["qty"] += item.quantity
+            bucket["revenue"] += item.line_total
+    top_products = []
+    for product in Product.objects.filter(pk__in=top_product_map.keys()).order_by("name"):
+        bucket = top_product_map[product.pk]
+        top_products.append({"name": product.name, "qty": bucket["qty"], "revenue": bucket["revenue"]})
+    top_products = sorted(top_products, key=lambda row: row["qty"], reverse=True)[:5]
+    if not top_products:
+        top_products = [{"name": "Sin ventas", "qty": Decimal("0.00"), "revenue": Decimal("0.00") }]
+
+    weekly_sales_map = {today - timedelta(days=offset): Decimal("0.00") for offset in range(6, -1, -1)}
+    for sale in sales_qs:
+        sale_day = sale.sold_at.date()
+        weekly_sales_map[sale_day] = weekly_sales_map.get(sale_day, Decimal("0.00")) + sale.total
+    weekly_sales = []
+    max_weekly_sales = max(weekly_sales_map.values(), default=Decimal("1.00"))
+    for day, amount in weekly_sales_map.items():
+        weekly_sales.append({"label": day.strftime("%a"), "value": amount, "height": int((amount / max_weekly_sales) * 100) if max_weekly_sales > 0 else 0})
+
+    open_shift = None
+    if branch is not None:
+        open_shift = CashShift.objects.select_related("user", "branch").filter(branch=branch, status=CashShift.Status.OPEN).order_by("-opened_at").first()
+    if open_shift is None:
+        open_shift = CashShift.objects.select_related("user", "branch").filter(status=CashShift.Status.OPEN).order_by("-opened_at").first()
+
+    cash_income = Decimal("0.00")
+    cash_expense = Decimal("0.00")
+    if open_shift is not None:
+        cash_income = open_shift.movements.filter(movement_type=CashMovement.Type.INCOME).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
+        cash_expense = open_shift.movements.filter(movement_type=CashMovement.Type.EXPENSE).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
+
+    credits_qs = CreditAccount.objects.filter(status__in=[CreditAccount.Status.OPEN, CreditAccount.Status.PARTIAL, CreditAccount.Status.OVERDUE])
+    pending_credits_total = credits_qs.aggregate(total=Sum("remaining_balance"))["total"] or Decimal("0.00")
+
     context = {
-        "branches": ["Sucursal Centro", "Sucursal Norte", "Sucursal Oriente"],
+        "branches": list(Branch.objects.filter(is_active=True).values_list("name", flat=True)) or ["Sucursal Centro"],
+        "active_branch": branch.name if branch else "Sucursal Centro",
         "kpis": [
-            {"label": "Ventas de hoy", "value": "$18,420", "delta": "+12%", "tone": "success"},
-            {"label": "Utilidad", "value": "$5,860", "delta": "+8%", "tone": "primary"},
-            {"label": "Stock bajo", "value": "24", "delta": "8 críticos", "tone": "warning"},
-            {"label": "Créditos pendientes", "value": "$9,240", "delta": "14 clientes", "tone": "danger"},
+            {"label": "Ventas de hoy", "value": f"${today_sales_total}", "delta": f"{today_sales_count} tickets", "tone": "success"},
+            {"label": "Utilidad", "value": f"${utility}", "delta": "Estimado bruto", "tone": "primary"},
+            {"label": "Stock bajo", "value": str(low_stock_qs.count()), "delta": f"{out_stock_qs.count()} agotados", "tone": "warning"},
+            {"label": "Créditos pendientes", "value": f"${pending_credits_total}", "delta": f"{credits_qs.count()} clientes", "tone": "danger"},
         ],
-        "recent_sales": [
-            {"folio": "V-1024", "customer": "Consumidor final", "amount": "$1,120", "status": "Pagada"},
-            {"folio": "V-1023", "customer": "Tienda López", "amount": "$860", "status": "Crédito"},
-            {"folio": "V-1022", "customer": "Farmacia Central", "amount": "$2,430", "status": "Pagada"},
-        ],
-        "low_stock": [
-            {"product": "Arroz 1 kg", "branch": "Sucursal Centro", "stock": "3", "state": "Bajo"},
-            {"product": "Aceite 1 L", "branch": "Sucursal Norte", "stock": "0", "state": "Agotado"},
-            {"product": "Frijol 500 g", "branch": "Sucursal Oriente", "stock": "5", "state": "Bajo"},
-        ],
-        "transfers": [
-            {"code": "TR-204", "from": "Centro", "to": "Norte", "state": "Pendiente"},
-            {"code": "TR-203", "from": "Oriente", "to": "Centro", "state": "Enviado"},
-        ],
+        "weekly_sales": weekly_sales,
+        "cash_summary": {
+            "branch": branch.name if branch else "-",
+            "shift_user": open_shift.user.username if open_shift and open_shift.user else "-",
+            "status": open_shift.get_status_display() if open_shift else "Cerrada",
+            "income": cash_income,
+            "expense": cash_expense,
+            "expected": open_shift.expected_cash if open_shift else Decimal("0.00"),
+            "counted": open_shift.counted_cash if open_shift else Decimal("0.00"),
+            "difference": open_shift.difference if open_shift else Decimal("0.00"),
+        },
+        "low_stock": low_stock,
+        "recent_sales": recent_sales,
+        "transfers": pending_transfers,
+        "top_products": top_products,
     }
     return render(request, "core/dashboard.html", context)
 
@@ -555,7 +662,27 @@ def collections_overview(request):
 
 
 def cash_overview(request):
-    return render(request, "core/module.html", _module_context("Caja", "Turno, arqueo, gastos e ingresos", ["Mi turno", "Abrir caja", "Cierre"], [{"label": "Caja abierta", "value": "Sí"}], [{"a": "Turno matutino", "b": "Centro", "c": "$17,460", "d": "Abierta"}]))
+    branch = Branch.objects.filter(is_active=True).order_by("name").first()
+    open_shift = _active_cash_shift(branch) if branch else None
+    if open_shift is None:
+        open_shift = CashShift.objects.select_related("branch", "user").filter(status=CashShift.Status.OPEN).order_by("-opened_at").first()
+
+    if branch is not None:
+        shifts = CashShift.objects.select_related("branch", "user").filter(branch=branch).order_by("-opened_at")[:8]
+    else:
+        shifts = CashShift.objects.select_related("branch", "user").order_by("-opened_at")[:8]
+
+    movements = open_shift.movements.select_related("created_by").order_by("-created_at")[:8] if open_shift else []
+    return render(
+        request,
+        "core/cash_overview.html",
+        {
+            "branch": branch,
+            "open_shift": open_shift,
+            "movements": movements,
+            "recent_shifts": shifts,
+        },
+    )
 
 
 def my_shift(request):
@@ -563,19 +690,103 @@ def my_shift(request):
 
 
 def cash_opening(request):
-    return render(request, "core/module.html", _module_context("Apertura de caja", "Monto inicial y validación de turno", ["Abrir turno"], [{"label": "Monto inicial", "value": "$500"}], []))
+    active_branch = Branch.objects.filter(is_active=True).order_by("name").first()
+    form = CashShiftOpenForm(request.POST or None, initial={"branch": active_branch, "initial_amount": Decimal("0.00")})
+    open_shift = _active_cash_shift(active_branch) if active_branch else None
+    if request.method == "POST" and form.is_valid():
+        branch = form.cleaned_data["branch"]
+        if _active_cash_shift(branch):
+            form.add_error(None, "Ya existe un turno abierto para esta sucursal.")
+        else:
+            CashShift.objects.create(
+                branch=branch,
+                user=request.user if request.user.is_authenticated else _system_user(),
+                initial_amount=form.cleaned_data["initial_amount"],
+                expected_cash=form.cleaned_data["initial_amount"],
+            )
+            return redirect("cash_overview")
+    return render(
+        request,
+        "core/cash_opening.html",
+        {
+            "form": form,
+            "active_branch": active_branch,
+            "open_shift": open_shift,
+        },
+    )
 
 
 def cash_movements(request):
-    return render(request, "core/module.html", _module_context("Movimientos de caja", "Ingresos y egresos del turno", ["Nuevo ingreso", "Nuevo egreso"], [{"label": "Movimientos", "value": "18"}], [{"a": "Ingreso menor", "b": "$120", "c": "Efectivo", "d": "Hoy"}]))
+    return _cash_movements(request, movement_type=CashMovement.Type.INCOME, page_title="Movimientos de caja", page_subtitle="Ingresos y egresos del turno")
 
 
 def cash_expenses(request):
-    return render(request, "core/module.html", _module_context("Gastos de caja", "Control de egresos operativos", ["Registrar gasto"], [{"label": "Gastos hoy", "value": "$420"}], [{"a": "Transporte", "b": "$120", "c": "Caja", "d": "Aplicado"}]))
+    return _cash_movements(request, movement_type=CashMovement.Type.EXPENSE, page_title="Gastos de caja", page_subtitle="Control de egresos operativos")
 
 
 def cash_close(request):
-    return render(request, "core/module.html", _module_context("Arqueo y cierre", "Resumen visual del turno", ["Cerrar turno"], [{"label": "Diferencia", "value": "$0"}], []))
+    branch = Branch.objects.filter(is_active=True).order_by("name").first()
+    open_shift = _active_cash_shift(branch) if branch else None
+    if open_shift is None:
+        open_shift = CashShift.objects.select_related("branch", "user").filter(status=CashShift.Status.OPEN).order_by("-opened_at").first()
+    form = CashCloseForm(request.POST or None, initial={"counted_cash": open_shift.counted_cash if open_shift else Decimal("0.00")})
+    if request.method == "POST" and form.is_valid():
+        if open_shift is None:
+            return redirect("cash_opening")
+        counted_cash = form.cleaned_data["counted_cash"]
+        open_shift.counted_cash = counted_cash
+        open_shift.difference = counted_cash - open_shift.expected_cash
+        open_shift.closed_at = timezone.now()
+        open_shift.status = CashShift.Status.CLOSED
+        open_shift.save(update_fields=["counted_cash", "difference", "closed_at", "status", "updated_at"])
+        return redirect("cash_overview")
+    movements = open_shift.movements.select_related("created_by").order_by("-created_at")[:10] if open_shift else []
+    return render(
+        request,
+        "core/cash_close.html",
+        {
+            "form": form,
+            "open_shift": open_shift,
+            "movements": movements,
+        },
+    )
+
+
+def _cash_movements(request, *, movement_type, page_title, page_subtitle):
+    branch = Branch.objects.filter(is_active=True).order_by("name").first()
+    open_shift = _active_cash_shift(branch) if branch else None
+    if open_shift is None:
+        open_shift = CashShift.objects.select_related("branch", "user").filter(status=CashShift.Status.OPEN).order_by("-opened_at").first()
+    form = CashMovementForm(request.POST or None, initial={"movement_type": movement_type})
+    if request.method == "POST" and form.is_valid():
+        if open_shift is None:
+            return redirect("cash_opening")
+        movement = CashMovement.objects.create(
+            shift=open_shift,
+            created_by=request.user if request.user.is_authenticated else _system_user(),
+            movement_type=form.cleaned_data["movement_type"],
+            concept=form.cleaned_data["concept"],
+            amount=form.cleaned_data["amount"],
+        )
+        if movement.movement_type == CashMovement.Type.INCOME:
+            open_shift.expected_cash = open_shift.expected_cash + movement.amount
+        else:
+            open_shift.expected_cash = open_shift.expected_cash - movement.amount
+        open_shift.save(update_fields=["expected_cash", "updated_at"])
+        return redirect("cash_overview")
+    movements = open_shift.movements.select_related("created_by").order_by("-created_at")[:12] if open_shift else []
+    return render(
+        request,
+        "core/cash_movements.html",
+        {
+            "form": form,
+            "open_shift": open_shift,
+            "movements": movements,
+            "page_title": page_title,
+            "page_subtitle": page_subtitle,
+            "movement_type": movement_type,
+        },
+    )
 
 
 def reports_overview(request):
