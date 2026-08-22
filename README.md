@@ -77,3 +77,8 @@ python manage.py runserver
 
 - El proyecto está pensado para crecer primero como aplicación server-rendered con HTMX.
 - La API REST queda disponible para integraciones futuras o pantallas adicionales.
+
+
+# Siguiente paso natural:
+
+Convertir inventario y ajustes en pantallas reales con conteo, merma y corrección.
