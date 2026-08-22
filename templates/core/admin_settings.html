@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Configuración | Coca Social{% endblock %}
+{% block page_title %}Configuración{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  {% for stat in stats %}
+  <div class="col-12 col-md-6 col-xl-3">
+    <article class="metric-card tone-primary">
+      <span class="metric-label">{{ stat.label }}</span>
+      <div class="metric-value">{{ stat.value }}</div>
+    </article>
+  </div>
+  {% endfor %}
+</div>
+
+<section class="panel">
+  <div class="panel-header">
+    <div>
+      <h2 class="panel-title mb-1">Parámetros generales</h2>
+      <p class="panel-subtitle mb-0">Información base del sistema y entorno</p>
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle table-clean mb-0">
+      <thead><tr><th>Nombre</th><th>Referencia</th><th>Métrica</th><th>Estado</th></tr></thead>
+      <tbody>
+        {% for row in settings_rows %}
+        <tr>
+          <td>{{ row.a }}</td>
+          <td>{{ row.b }}</td>
+          <td>{{ row.c }}</td>
+          <td><span class="badge badge-soft">{{ row.d }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

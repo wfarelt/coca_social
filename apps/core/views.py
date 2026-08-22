@@ -1,6 +1,7 @@
 from collections import defaultdict
 from datetime import date, timedelta
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import F, Sum
@@ -919,12 +920,30 @@ def admin_role_delete(request, pk):
     return render(request, "core/admin_delete.html", {"object": group, "list_url": "admin_roles", "page_title": "Eliminar rol", "page_subtitle": group.name})
 
 
-def admin_roles(request):
-    return render(request, "core/module.html", _module_context("Roles y permisos", "Acceso por módulo y sucursal", ["Nuevo rol"], [{"label": "Roles", "value": "4"}], []))
-
-
 def admin_settings(request):
-    return render(request, "core/module.html", _module_context("Configuración", "Parámetros generales del sistema", ["Guardar cambios"], [{"label": "Estado", "value": "Activo"}], []))
+    branches_total = Branch.objects.count()
+    active_branches = Branch.objects.filter(is_active=True).count()
+    user_total = get_user_model().objects.count()
+    role_total = Group.objects.count()
+    return render(
+        request,
+        "core/admin_settings.html",
+        {
+            "page_title": "Configuración",
+            "page_subtitle": "Parámetros generales del sistema",
+            "stats": [
+                {"label": "Sucursales", "value": str(branches_total)},
+                {"label": "Activas", "value": str(active_branches)},
+                {"label": "Usuarios", "value": str(user_total)},
+                {"label": "Roles", "value": str(role_total)},
+            ],
+            "settings_rows": [
+                {"a": "Zona horaria", "b": settings.TIME_ZONE, "c": "Operación", "d": "Sistema"},
+                {"a": "Idioma", "b": settings.LANGUAGE_CODE, "c": "Interfaz", "d": "Sistema"},
+                {"a": "Base de datos", "b": "sqlite3", "c": "Desarrollo", "d": "Local"},
+            ],
+        },
+    )
 
 
 def _catalog_list(request, *, model, page_title, page_subtitle, create_url, create_label, headers, row_builder):
@@ -1003,6 +1022,33 @@ def branch_edit(request, pk):
 
 def branch_delete(request, pk):
     return _catalog_delete(request, instance=get_object_or_404(Branch, pk=pk), list_url="/catalogos/sucursales/", page_title="Eliminar sucursal", page_subtitle="Confirma la eliminación de la sede")
+
+
+def admin_branches(request):
+    branches = Branch.objects.order_by("name")
+    rows = [
+        {
+            "pk": branch.pk,
+            "a": branch.name,
+            "b": branch.code,
+            "c": "Activa" if branch.is_active else "Inactiva",
+            "d": branch.address or "Sin dirección",
+        }
+        for branch in branches
+    ]
+    return render(
+        request,
+        "core/admin_branches.html",
+        {
+            "page_title": "Sucursales",
+            "page_subtitle": "Gestión de sedes físicas",
+            "stats": [
+                {"label": "Sucursales", "value": str(branches.count())},
+                {"label": "Activas", "value": str(branches.filter(is_active=True).count())},
+            ],
+            "rows": rows,
+        },
+    )
 
 
 def categories_list(request):

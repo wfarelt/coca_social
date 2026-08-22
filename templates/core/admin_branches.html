@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}Sucursales | Coca Social{% endblock %}
+{% block page_title %}Sucursales{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  {% for stat in stats %}
+  <div class="col-12 col-md-6 col-xl-3">
+    <article class="metric-card tone-primary">
+      <span class="metric-label">{{ stat.label }}</span>
+      <div class="metric-value">{{ stat.value }}</div>
+    </article>
+  </div>
+  {% endfor %}
+</div>
+
+<section class="panel">
+  <div class="panel-header">
+    <div>
+      <h2 class="panel-title mb-1">Gestión de sucursales</h2>
+      <p class="panel-subtitle mb-0">Alta, edición y control de sedes físicas</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a class="btn btn-primary btn-sm" href="{% url 'branch_create' %}">Nueva sucursal</a>
+      <a class="btn btn-outline-primary btn-sm" href="{% url 'branches' %}">Ver catálogo</a>
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle table-clean mb-0">
+      <thead><tr><th>Nombre</th><th>Código</th><th>Estado</th><th>Dirección</th><th></th></tr></thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td>{{ row.a }}</td>
+          <td>{{ row.b }}</td>
+          <td><span class="badge badge-soft">{{ row.c }}</span></td>
+          <td>{{ row.d }}</td>
+          <td class="text-end">
+            <div class="btn-group btn-group-sm">
+              <a class="btn btn-outline-primary" href="{% url 'branch_edit' row.pk %}">Editar</a>
+              <a class="btn btn-outline-danger" href="{% url 'branch_delete' row.pk %}">Eliminar</a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="text-center text-muted py-4">No hay sucursales registradas</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
