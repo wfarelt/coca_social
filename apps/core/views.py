@@ -34,7 +34,7 @@ from .forms import (
     UserAdminChangeForm,
     UserAdminCreateForm,
 )
-from .models import Brand, Branch, CashMovement, CashShift, Category, CreditAccount, Customer, InventoryAdjustment, Product, ProductStock, Purchase, Sale, SaleItem, SaleReturn, Supplier, Transfer
+from .models import Brand, Branch, CashMovement, CashShift, Category, CreditAccount, Customer, InventoryAdjustment, KardexEntry, Product, ProductStock, Purchase, Sale, SaleItem, SaleReturn, StockMovement, Supplier, Transfer
 
 
 def _module_context(title, subtitle, actions, stats=None, rows=None):
@@ -278,7 +278,7 @@ def pos_add_item(request, pk):
     cart[key] = cart.get(key, 0) + 1
     request.session["pos_cart"] = cart
     request.session.modified = True
-    return render(request, "core/partials/pos_cart.html", _cart_context(request))
+    return render(request, "core/partials/pos_cart_panel.html", _cart_context(request))
 
 
 def pos_update_item(request, pk):
@@ -300,7 +300,7 @@ def pos_update_item(request, pk):
         cart[key] = quantity
     request.session["pos_cart"] = cart
     request.session.modified = True
-    return render(request, "core/partials/pos_cart.html", _cart_context(request))
+    return render(request, "core/partials/pos_cart_panel.html", _cart_context(request))
 
 
 def pos_clear_cart(request):
@@ -308,7 +308,7 @@ def pos_clear_cart(request):
         return HttpResponseBadRequest("Invalid method")
     request.session.pop("pos_cart", None)
     request.session.modified = True
-    return render(request, "core/partials/pos_cart.html", _cart_context(request))
+    return render(request, "core/partials/pos_cart_panel.html", _cart_context(request))
 
 
 def _cart_context(request):
@@ -499,7 +499,64 @@ def sale_return_delete(request, pk):
 
 
 def inventory_overview(request):
-    return render(request, "core/inventory/module.html", _module_context("Inventario", "Catálogo, stock por sucursal y kardex", ["Nuevo producto", "Ajuste de inventario"], [{"label": "Productos", "value": "1,248"}, {"label": "Bajo stock", "value": "24"}], [{"a": "Arroz 1 kg", "b": "ARZ-001", "c": "Centro", "d": "Bajo"}, {"a": "Aceite 1 L", "b": "ACE-014", "c": "Norte", "d": "Agotado"}]))
+    branch = selected_branch_for_request(request)
+    stock_qs = ProductStock.objects.select_related("branch", "product").order_by("product__name")
+    if branch is not None:
+        stock_qs = stock_qs.filter(branch=branch)
+    low_stock_count = stock_qs.filter(quantity__gt=0, quantity__lte=F("product__min_stock")).count()
+    out_stock_count = stock_qs.filter(quantity__lte=0).count()
+    recent_adjustments = InventoryAdjustment.objects.select_related("branch", "product", "created_by").order_by("-created_at")
+    if branch is not None:
+        recent_adjustments = recent_adjustments.filter(branch=branch)
+    recent_adjustments = recent_adjustments[:5]
+    recent_movements = StockMovement.objects.select_related("branch", "product", "created_by").order_by("-created_at")
+    if branch is not None:
+        recent_movements = recent_movements.filter(branch=branch)
+    recent_movements = recent_movements[:5]
+    return render(
+        request,
+        "core/inventory/overview.html",
+        {
+            "branch": branch,
+            "stats": [
+                {"label": "Productos en stock", "value": str(stock_qs.count())},
+                {"label": "Bajo stock", "value": str(low_stock_count)},
+                {"label": "Agotados", "value": str(out_stock_count)},
+                {"label": "Ajustes aplicados", "value": str(InventoryAdjustment.objects.filter(applied_at__isnull=False).count())},
+            ],
+            "stock_rows": [
+                {
+                    "name": stock.product.name,
+                    "code": stock.product.code,
+                    "quantity": stock.quantity,
+                    "available": stock.available_quantity,
+                    "status": "Agotado" if stock.quantity <= 0 else ("Bajo" if stock.quantity <= stock.product.min_stock else "Normal"),
+                    "branch": stock.branch.name,
+                }
+                for stock in stock_qs[:10]
+            ],
+            "adjustment_rows": [
+                {
+                    "code": f"AJ-{adjustment.pk}",
+                    "reason": adjustment.get_reason_display(),
+                    "product": adjustment.product.name,
+                    "change": f"{adjustment.previous_quantity} → {adjustment.new_quantity}",
+                    "status": "Aplicado" if adjustment.applied_at else "Borrador",
+                }
+                for adjustment in recent_adjustments
+            ],
+            "movement_rows": [
+                {
+                    "reference": movement.reference or "-",
+                    "product": movement.product.name,
+                    "type": movement.get_movement_type_display(),
+                    "quantity": movement.quantity,
+                    "branch": movement.branch.name,
+                }
+                for movement in recent_movements
+            ],
+        },
+    )
 
 
 def products(request):
@@ -515,11 +572,72 @@ def brands(request):
 
 
 def stock_by_branch(request):
-    return render(request, "core/inventory/module.html", _module_context("Stock por sucursal", "Disponibilidad por sede y mínimos", ["Ver críticos"], [{"label": "Sucursales", "value": "3"}], [{"a": "Sucursal Centro", "b": "Arroz 1 kg", "c": "3", "d": "Bajo"}]))
+    branch = selected_branch_for_request(request)
+    stock_qs = ProductStock.objects.select_related("branch", "product").order_by("product__name")
+    if branch is not None:
+        stock_qs = stock_qs.filter(branch=branch)
+    rows = [
+        {
+            "cells": [
+                stock.product.name,
+                stock.product.code,
+                stock.quantity,
+                stock.reserved_quantity,
+                stock.available_quantity,
+                    "Agotado" if stock.quantity <= 0 else ("Bajo" if stock.quantity <= stock.product.min_stock else "Normal"),
+            ],
+            "edit_url": "#",
+            "delete_url": "#",
+        }
+        for stock in stock_qs
+    ]
+    return render(
+        request,
+        "core/inventory/stock.html",
+        {
+            "branch": branch,
+            "page_title": "Stock por sucursal",
+            "page_subtitle": "Disponibilidad, reservado y disponible por producto",
+            "stats": [
+                {"label": "Productos", "value": str(stock_qs.count())},
+                {"label": "Bajo stock", "value": str(stock_qs.filter(quantity__gt=0, quantity__lte=F("product__min_stock")).count())},
+                {"label": "Agotados", "value": str(stock_qs.filter(quantity__lte=0).count())},
+            ],
+            "headers": ["Producto", "Código", "Cantidad", "Reservado", "Disponible", "Estado"],
+            "rows": rows,
+        },
+    )
 
 
 def kardex(request):
-    return render(request, "core/inventory/module.html", _module_context("Kardex", "Entradas, salidas y movimientos", ["Exportar"], [{"label": "Movimientos", "value": "8,412"}], [{"a": "Compra", "b": "ARZ-001", "c": "+100", "d": "Entrada"}]))
+    branch = selected_branch_for_request(request)
+    entries = KardexEntry.objects.select_related("branch", "product", "created_by").order_by("-created_at")
+    if branch is not None:
+        entries = entries.filter(branch=branch)
+    rows = [
+        {
+            "cells": [entry.reference, entry.product.name, entry.movement_type, entry.quantity_in, entry.quantity_out, entry.balance, entry.unit_cost],
+            "edit_url": "#",
+            "delete_url": "#",
+        }
+        for entry in entries[:20]
+    ]
+    return render(
+        request,
+        "core/inventory/kardex.html",
+        {
+            "branch": branch,
+            "page_title": "Kardex",
+            "page_subtitle": "Entradas, salidas y saldo acumulado",
+            "stats": [
+                {"label": "Movimientos", "value": str(entries.count())},
+                {"label": "Entradas", "value": str(entries.filter(quantity_in__gt=0).count())},
+                {"label": "Salidas", "value": str(entries.filter(quantity_out__gt=0).count())},
+            ],
+            "headers": ["Referencia", "Producto", "Tipo", "Entrada", "Salida", "Saldo", "Costo unitario"],
+            "rows": rows,
+        },
+    )
 
 
 def inventory_adjustments(request):
@@ -536,7 +654,7 @@ def inventory_adjustments(request):
     ]
     return render(
         request,
-        "core/document/list.html",
+        "core/inventory/adjustments_list.html",
         {
             "page_title": "Ajustes de inventario",
             "page_subtitle": "Conteos, mermas y correcciones",
@@ -562,7 +680,7 @@ def inventory_adjustment_create(request):
         return redirect("inventory_adjustments")
     return render(
         request,
-        "core/catalog/form.html",
+        "core/inventory/adjustment_form.html",
         {
             "form": form,
             "page_title": "Nuevo ajuste",
@@ -586,7 +704,7 @@ def inventory_adjustment_edit(request, pk):
         return redirect("inventory_adjustments")
     return render(
         request,
-        "core/catalog/form.html",
+        "core/inventory/adjustment_form.html",
         {
             "form": form,
             "page_title": "Editar ajuste",
@@ -605,7 +723,7 @@ def inventory_adjustment_delete(request, pk):
         return redirect("inventory_adjustments")
     return render(
         request,
-        "core/catalog/delete.html",
+        "core/inventory/adjustment_delete.html",
         {
             "object": adjustment,
             "page_title": "Eliminar ajuste",

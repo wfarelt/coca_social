@@ -1,11 +1,13 @@
 <div class="quick-products-grid">
   {% for product in products|default:quick_products %}
-  <form method="post" action="{% url 'pos_add_item' product.pk %}">
+  <form method="post" action="{% url 'pos_add_item' product.pk %}" hx-post="{% url 'pos_add_item' product.pk %}" hx-target="#pos-cart-panel" hx-swap="outerHTML">
     {% csrf_token %}
     <button class="quick-product-card w-100" type="submit">
-      <span class="quick-product-stock">{{ product.stocks.first.quantity|default:product.stock|default:0 }} en stock</span>
+      {% with stock=product.stocks.first %}
+      <span class="quick-product-stock">{{ stock.quantity|default:0 }} en stock</span>
+      {% endwith %}
       <strong>{{ product.name }}</strong>
-      <span class="quick-product-price">${{ product.sale_price|default:product.price }}</span>
+      <span class="quick-product-price">${{ product.sale_price|default:0 }}</span>
     </button>
   </form>
   {% empty %}

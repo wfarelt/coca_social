@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% block title %}Inventario | Coca Social{% endblock %}
+{% block page_title %}Inventario{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  {% for stat in stats %}
+  <div class="col-12 col-md-6 col-xl-3">
+    <article class="metric-card tone-primary">
+      <span class="metric-label">{{ stat.label }}</span>
+      <div class="metric-value">{{ stat.value }}</div>
+    </article>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="row g-3">
+  <div class="col-12 col-xl-7">
+    <section class="panel h-100">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title mb-1">Stock reciente</h2>
+          <p class="panel-subtitle mb-0">Sucursal: {{ branch|default:'Todas' }}</p>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle table-clean mb-0">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Código</th>
+              <th>Cantidad</th>
+              <th>Disponible</th>
+              <th>Estado</th>
+              <th>Sucursal</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in stock_rows %}
+            <tr>
+              <td>{{ row.name }}</td>
+              <td>{{ row.code }}</td>
+              <td>{{ row.quantity }}</td>
+              <td>{{ row.available }}</td>
+              <td>{{ row.status }}</td>
+              <td>{{ row.branch }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="py-5 text-center text-muted">No hay stock registrado para esta sucursal.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+  <div class="col-12 col-xl-5">
+    <section class="panel h-100">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title mb-1">Ajustes recientes</h2>
+          <p class="panel-subtitle mb-0">Conteo, merma, faltante y corrección</p>
+        </div>
+        <a class="btn btn-outline-primary btn-sm" href="{% url 'inventory_adjustment_create' %}">Nuevo ajuste</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle table-clean mb-0">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Motivo</th>
+              <th>Producto</th>
+              <th>Cambio</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in adjustment_rows %}
+            <tr>
+              <td>{{ row.code }}</td>
+              <td>{{ row.reason }}</td>
+              <td>{{ row.product }}</td>
+              <td>{{ row.change }}</td>
+              <td>{{ row.status }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="py-5 text-center text-muted">Sin ajustes registrados todavía.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="row g-3 mt-0">
+  <div class="col-12">
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title mb-1">Movimientos de inventario</h2>
+          <p class="panel-subtitle mb-0">Entradas, salidas y traspasos</p>
+        </div>
+        <a class="btn btn-outline-primary btn-sm" href="{% url 'kardex' %}">Ver kardex</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle table-clean mb-0">
+          <thead>
+            <tr>
+              <th>Referencia</th>
+              <th>Producto</th>
+              <th>Tipo</th>
+              <th>Cantidad</th>
+              <th>Sucursal</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in movement_rows %}
+            <tr>
+              <td>{{ row.reference }}</td>
+              <td>{{ row.product }}</td>
+              <td>{{ row.type }}</td>
+              <td>{{ row.quantity }}</td>
+              <td>{{ row.branch }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="py-5 text-center text-muted">Sin movimientos recientes.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

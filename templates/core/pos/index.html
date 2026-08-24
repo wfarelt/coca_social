@@ -30,26 +30,11 @@
   </div>
 
   <div class="col-12 col-xl-4">
-    <section class="panel h-100 pos-summary-panel">
-      <div class="panel-header">
-        <div>
-          <h2 class="panel-title">Carrito</h2>
-          <p class="panel-subtitle mb-0">Sucursal Centro · Caja abierta</p>
-        </div>
-      </div>
+    {% include 'core/partials/pos_cart_panel.html' %}
 
-      <div id="pos-cart">
-        {% include 'core/partials/pos_cart.html' %}
-      </div>
-
-      <div class="pos-totals">
-        <div><span>Subtotal</span><strong>${{ subtotal|default:0 }}</strong></div>
-        <div><span>Descuento</span><strong>${{ discount|default:0 }}</strong></div>
-        <div class="total-line"><span>Total</span><strong>${{ total|default:0 }}</strong></div>
-      </div>
-
-      <form method="post" action="{% url 'pos_checkout' %}">
-        {% csrf_token %}
+    <form method="post" action="{% url 'pos_checkout' %}">
+      {% csrf_token %}
+      <div class="panel mt-3">
         <div class="pos-payment-grid">
           <select class="form-select" name="customer">
             <option value="">Consumidor final</option>
@@ -68,8 +53,8 @@
 
         <button class="btn btn-primary btn-lg w-100 pos-pay-btn" type="submit">Cobrar</button>
         <button class="btn btn-outline-secondary w-100 mt-2" type="button">Vender al crédito</button>
-      </form>
-    </section>
+      </div>
+    </form>
   </div>
 </div>
 {% endblock %}

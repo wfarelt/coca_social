@@ -1,0 +1,18 @@
+<div id="pos-cart-panel" class="panel h-100 pos-summary-panel">
+  <div class="panel-header">
+    <div>
+      <h2 class="panel-title">Carrito</h2>
+      <p class="panel-subtitle mb-0">Sucursal Centro · Caja abierta</p>
+    </div>
+  </div>
+
+  <div id="pos-cart">
+    {% include 'core/partials/pos_cart.html' %}
+  </div>
+
+  <div class="pos-totals">
+    <div><span>Subtotal</span><strong>${{ subtotal|default:0 }}</strong></div>
+    <div><span>Descuento</span><strong>${{ discount|default:0 }}</strong></div>
+    <div class="total-line"><span>Total</span><strong>${{ total|default:0 }}</strong></div>
+  </div>
+</div>

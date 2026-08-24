@@ -22,7 +22,7 @@ La base funcional ya está iniciada y cuenta con:
 - POS con búsqueda rápida, carrito en sesión y checkout.
 - Catálogos CRUD para sucursales, categorías, marcas, productos, proveedores y clientes.
 - Documentos operativos para compras y traspasos con líneas embebidas.
-- Registro de inventario, kardex, stock por sucursal, stock bajo y agotados.
+- Inventario con pantallas reales de stock por sucursal, kardex y ajustes de conteo, merma, faltante y corrección.
 - Ventas con registro de stock, cobro, crédito y movimiento de caja.
 - Devoluciones de ventas y ajustes de inventario con reversa de stock y kardex.
 
@@ -83,6 +83,7 @@ Todos los usuarios quedan activos; `admin` además es superusuario.
 3. Crear reportes exportables de ventas, compras, inventario, caja y créditos.
 4. Afinar permisos por sucursal y por módulo con reglas más granulares.
 5. Conectar integración API/REST para escenarios de consumo externo.
+6. Seguir afinando inventario con exportación y movimientos más detallados por producto.
 
 ## Notas
 
@@ -92,4 +93,4 @@ Todos los usuarios quedan activos; `admin` además es superusuario.
 
 # Siguiente paso natural:
 
-Convertir inventario y ajustes en pantallas reales con conteo, merma y corrección.
+Mejorar inventario con filtros, exportación y detalle por producto/sucursal.
