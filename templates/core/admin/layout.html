@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="panel mb-3">
+  <div class="panel-header">
+    <div>
+      <h2 class="panel-title mb-1">{{ page_title }}</h2>
+      <p class="panel-subtitle mb-0">{{ page_subtitle }}</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a class="btn btn-outline-primary btn-sm" href="{% url 'admin_overview' %}">Resumen</a>
+      <a class="btn btn-outline-primary btn-sm" href="{% url 'admin_branches' %}">Sucursales</a>
+      <a class="btn btn-outline-primary btn-sm" href="{% url 'admin_users' %}">Usuarios</a>
+      <a class="btn btn-outline-primary btn-sm" href="{% url 'admin_roles' %}">Roles</a>
+      <a class="btn btn-outline-primary btn-sm" href="{% url 'admin_settings' %}">Configuración</a>
+    </div>
+  </div>
+</section>
+
+{% block admin_body %}{% endblock %}
+{% endblock %}

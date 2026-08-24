@@ -1,0 +1,15 @@
+{% extends 'core/admin/layout.html' %}
+{% block title %}{{ page_title }} | Coca Social{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+{% block admin_body %}
+<section class="panel">
+  <h2 class="panel-title mb-2">{{ page_title }}</h2>
+  <p class="panel-subtitle">{{ page_subtitle }}</p>
+  <p>¿Deseas eliminar <strong>{{ object }}</strong>?</p>
+  <form method="post" class="d-flex gap-2">
+    {% csrf_token %}
+    <button class="btn btn-danger" type="submit">Eliminar</button>
+    <a class="btn btn-outline-secondary" href="{% url list_url %}">Cancelar</a>
+  </form>
+</section>
+{% endblock %}

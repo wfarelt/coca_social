@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}{{ page_title }} | Coca Social{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="panel-header">
+    <div>
+      <h2 class="panel-title mb-1">{{ page_title }}</h2>
+      <p class="panel-subtitle mb-0">{{ page_subtitle }}</p>
+    </div>
+    <a class="btn btn-primary btn-sm" href="{{ create_url }}">{{ create_label }}</a>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle table-clean mb-0">
+      <thead>
+        <tr>
+          {% for header in headers %}
+          <th>{{ header }}</th>
+          {% endfor %}
+          <th class="text-end">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          {% for cell in row.cells %}
+          <td>{{ cell }}</td>
+          {% endfor %}
+          <td class="text-end">
+            <div class="btn-group btn-group-sm">
+              <a class="btn btn-outline-secondary" href="{{ row.edit_url }}">Editar</a>
+              <a class="btn btn-outline-danger" href="{{ row.delete_url }}">Eliminar</a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="{{ headers|length|add:1 }}" class="py-5 text-center text-muted">Sin registros todavía.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

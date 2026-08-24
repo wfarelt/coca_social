@@ -175,12 +175,7 @@ def pos(request):
     cart_context = _cart_context(request)
     context = {
         "customers": Customer.objects.filter(is_active=True).order_by("name")[:20],
-        "quick_products": [
-            {"name": "Coca-Cola 600ml", "price": "$18", "stock": 48},
-            {"name": "Pan Bimbo grande", "price": "$42", "stock": 19},
-            {"name": "Leche entera 1L", "price": "$28", "stock": 12},
-            {"name": "Arroz 1kg", "price": "$26", "stock": 31},
-        ],
+        "quick_products": Product.objects.select_related("category", "brand").prefetch_related("stocks").filter(is_active=True).order_by("name")[:8],
         **cart_context,
     }
     return render(request, "core/pos.html", context)
@@ -354,7 +349,7 @@ def sales_list(request):
         )
     return render(
         request,
-        "core/document_list.html",
+        "core/document/list.html",
         {
             "page_title": "Ventas realizadas",
             "page_subtitle": "Historial de tickets y cobros",
@@ -387,7 +382,7 @@ def sale_cancel(request, pk):
         return redirect("sales_list")
     return render(
         request,
-        "core/document_delete.html",
+        "core/document/delete.html",
         {
             "object": sale,
             "page_title": "Anular venta",
@@ -415,7 +410,7 @@ def sales_returns(request):
     ]
     return render(
         request,
-        "core/document_list.html",
+        "core/document/list.html",
         {
             "page_title": "Devoluciones",
             "page_subtitle": "Control de notas de devolución y ajustes",
@@ -444,7 +439,7 @@ def sale_return_create(request):
         return redirect("sales_returns")
     return render(
         request,
-        "core/document_items_form.html",
+        "core/document/items_form.html",
         {
             "form": form,
             "formset": formset,
@@ -475,7 +470,7 @@ def sale_return_edit(request, pk):
         return redirect("sales_returns")
     return render(
         request,
-        "core/document_items_form.html",
+        "core/document/items_form.html",
         {
             "form": form,
             "formset": formset,
@@ -496,7 +491,7 @@ def sale_return_delete(request, pk):
             sale_return.reverse_inventory(request.user if request.user.is_authenticated else _system_user())
         sale_return.delete()
         return redirect("sales_returns")
-    return render(request, "core/document_delete.html", {"object": sale_return, "page_title": "Eliminar devolución", "page_subtitle": sale_return.code, "list_url": "/ventas/devoluciones/"})
+    return render(request, "core/document/delete.html", {"object": sale_return, "page_title": "Eliminar devolución", "page_subtitle": sale_return.code, "list_url": "/ventas/devoluciones/"})
 
 
 def inventory_overview(request):
@@ -537,7 +532,7 @@ def inventory_adjustments(request):
     ]
     return render(
         request,
-        "core/document_list.html",
+        "core/document/list.html",
         {
             "page_title": "Ajustes de inventario",
             "page_subtitle": "Conteos, mermas y correcciones",
@@ -563,7 +558,7 @@ def inventory_adjustment_create(request):
         return redirect("inventory_adjustments")
     return render(
         request,
-        "core/catalog_form.html",
+        "core/catalog/form.html",
         {
             "form": form,
             "page_title": "Nuevo ajuste",
@@ -587,7 +582,7 @@ def inventory_adjustment_edit(request, pk):
         return redirect("inventory_adjustments")
     return render(
         request,
-        "core/catalog_form.html",
+        "core/catalog/form.html",
         {
             "form": form,
             "page_title": "Editar ajuste",
@@ -606,7 +601,7 @@ def inventory_adjustment_delete(request, pk):
         return redirect("inventory_adjustments")
     return render(
         request,
-        "core/catalog_delete.html",
+        "core/catalog/delete.html",
         {
             "object": adjustment,
             "page_title": "Eliminar ajuste",
@@ -646,7 +641,7 @@ def purchases_list(request):
         )
     return render(
         request,
-        "core/document_list.html",
+        "core/document/list.html",
         {
             "page_title": "Compras",
             "page_subtitle": "Registro de compras y entradas de mercancía",
@@ -671,7 +666,7 @@ def purchase_create(request):
         return redirect("purchases_list")
     return render(
         request,
-        "core/document_items_form.html",
+        "core/document/items_form.html",
         {
             "form": form,
             "formset": formset,
@@ -698,7 +693,7 @@ def purchase_edit(request, pk):
         return redirect("purchases_list")
     return render(
         request,
-        "core/document_items_form.html",
+        "core/document/items_form.html",
         {
             "form": form,
             "formset": formset,
@@ -717,7 +712,7 @@ def purchase_delete(request, pk):
     if request.method == "POST":
         purchase.delete()
         return redirect("purchases_list")
-    return render(request, "core/document_delete.html", {"object": purchase, "page_title": "Eliminar compra", "page_subtitle": purchase.folio, "list_url": "/compras/"})
+    return render(request, "core/document/delete.html", {"object": purchase, "page_title": "Eliminar compra", "page_subtitle": purchase.folio, "list_url": "/compras/"})
 
 
 def transfers_list(request):
@@ -732,7 +727,7 @@ def transfers_list(request):
         )
     return render(
         request,
-        "core/document_list.html",
+        "core/document/list.html",
         {
             "page_title": "Traspasos",
             "page_subtitle": "Envíos entre sucursales y control de estado",
@@ -762,7 +757,7 @@ def transfer_create(request):
         return redirect("transfers_list")
     return render(
         request,
-        "core/document_items_form.html",
+        "core/document/items_form.html",
         {
             "form": form,
             "formset": formset,
@@ -795,7 +790,7 @@ def transfer_edit(request, pk):
         return redirect("transfers_list")
     return render(
         request,
-        "core/document_items_form.html",
+        "core/document/items_form.html",
         {
             "form": form,
             "formset": formset,
@@ -814,7 +809,7 @@ def transfer_delete(request, pk):
     if request.method == "POST":
         transfer.delete()
         return redirect("transfers_list")
-    return render(request, "core/document_delete.html", {"object": transfer, "page_title": "Eliminar traspaso", "page_subtitle": transfer.code, "list_url": "/traspasos/"})
+    return render(request, "core/document/delete.html", {"object": transfer, "page_title": "Eliminar traspaso", "page_subtitle": transfer.code, "list_url": "/traspasos/"})
 
 
 def transfers_overview(request):
@@ -1010,25 +1005,47 @@ def admin_overview(request):
     role_count = Group.objects.count()
     return render(
         request,
-        "core/module.html",
-        _module_context(
-            "Administración",
-            "Sucursales, usuarios, roles y configuración",
-            ["Sucursales", "Usuarios", "Roles", "Configuración"],
-            [
+        "core/admin/index.html",
+        {
+            "page_title": "Administración",
+            "page_subtitle": "Sucursales, usuarios, roles y configuración",
+            "stats": [
                 {"label": "Usuarios", "value": str(user_count)},
                 {"label": "Roles", "value": str(role_count)},
             ],
-            [
+            "rows": [
                 {"a": "Usuarios", "b": "Altas y permisos", "c": f"{user_count} activos", "d": "Sistema"},
                 {"a": "Roles", "b": "Grupos y permisos", "c": f"{role_count} grupos", "d": "Sistema"},
             ],
-        ),
+        },
     )
 
 
 def admin_branches(request):
-    return render(request, "core/module.html", _module_context("Sucursales", "Gestión de sedes físicas", ["Nueva sucursal"], [{"label": "Sucursales", "value": "3"}], []))
+    branches = Branch.objects.order_by("name")
+    rows = [
+        {
+            "pk": branch.pk,
+            "a": branch.name,
+            "b": branch.code,
+            "c": "Activa" if branch.is_active else "Inactiva",
+            "d": branch.address or "Sin dirección",
+        }
+        for branch in branches
+    ]
+    return render(
+        request,
+        "core/admin/branches.html",
+        {
+            "page_title": "Sucursales",
+            "page_subtitle": "Gestión de sedes físicas",
+            "stats": [
+                {"label": "Sucursales", "value": str(branches.count())},
+                {"label": "Activas", "value": str(branches.filter(is_active=True).count())},
+            ],
+            "rows": rows,
+        },
+    )
 
 
 def admin_users(request):
@@ -1045,7 +1062,7 @@ def admin_users(request):
     ]
     return render(
         request,
-        "core/admin_users.html",
+        "core/admin/users.html",
         {
             "users": users,
             "rows": rows,
@@ -1061,7 +1078,7 @@ def admin_user_create(request):
         user = form.save()
         form.save_m2m()
         return redirect("admin_users")
-    return render(request, "core/admin_user_form.html", {"form": form, "page_title": "Nuevo usuario", "page_subtitle": "Alta de operador"})
+    return render(request, "core/admin/user_form.html", {"form": form, "page_title": "Nuevo usuario", "page_subtitle": "Alta de operador"})
 
 
 def admin_user_edit(request, pk):
@@ -1071,7 +1088,7 @@ def admin_user_edit(request, pk):
         form.save()
         form.save_m2m()
         return redirect("admin_users")
-    return render(request, "core/admin_user_form.html", {"form": form, "page_title": "Editar usuario", "page_subtitle": user.username})
+    return render(request, "core/admin/user_form.html", {"form": form, "page_title": "Editar usuario", "page_subtitle": user.username})
 
 
 def admin_user_delete(request, pk):
@@ -1079,7 +1096,7 @@ def admin_user_delete(request, pk):
     if request.method == "POST":
         user.delete()
         return redirect("admin_users")
-    return render(request, "core/admin_delete.html", {"object": user, "list_url": "admin_users", "page_title": "Eliminar usuario", "page_subtitle": user.username})
+    return render(request, "core/admin/delete.html", {"object": user, "list_url": "admin_users", "page_title": "Eliminar usuario", "page_subtitle": user.username})
 
 
 def admin_roles(request):
@@ -1096,7 +1113,7 @@ def admin_roles(request):
     ]
     return render(
         request,
-        "core/admin_roles.html",
+        "core/admin/roles.html",
         {
             "groups": groups,
             "rows": rows,
@@ -1111,7 +1128,7 @@ def admin_role_create(request):
     if request.method == "POST" and form.is_valid():
         form.save()
         return redirect("admin_roles")
-    return render(request, "core/admin_role_form.html", {"form": form, "page_title": "Nuevo rol", "page_subtitle": "Definir permisos"})
+    return render(request, "core/admin/role_form.html", {"form": form, "page_title": "Nuevo rol", "page_subtitle": "Definir permisos"})
 
 
 def admin_role_edit(request, pk):
@@ -1120,7 +1137,7 @@ def admin_role_edit(request, pk):
     if request.method == "POST" and form.is_valid():
         form.save()
         return redirect("admin_roles")
-    return render(request, "core/admin_role_form.html", {"form": form, "page_title": "Editar rol", "page_subtitle": group.name})
+    return render(request, "core/admin/role_form.html", {"form": form, "page_title": "Editar rol", "page_subtitle": group.name})
 
 
 def admin_role_delete(request, pk):
@@ -1128,7 +1145,7 @@ def admin_role_delete(request, pk):
     if request.method == "POST":
         group.delete()
         return redirect("admin_roles")
-    return render(request, "core/admin_delete.html", {"object": group, "list_url": "admin_roles", "page_title": "Eliminar rol", "page_subtitle": group.name})
+    return render(request, "core/admin/delete.html", {"object": group, "list_url": "admin_roles", "page_title": "Eliminar rol", "page_subtitle": group.name})
 
 
 def admin_settings(request):
@@ -1138,7 +1155,7 @@ def admin_settings(request):
     role_total = Group.objects.count()
     return render(
         request,
-        "core/admin_settings.html",
+        "core/admin/settings.html",
         {
             "page_title": "Configuración",
             "page_subtitle": "Parámetros generales del sistema",
@@ -1161,7 +1178,7 @@ def _catalog_list(request, *, model, page_title, page_subtitle, create_url, crea
     rows = [row_builder(instance) for instance in model.objects.all()]
     return render(
         request,
-        "core/catalog_list.html",
+        "core/catalog/list.html",
         {
             "page_title": page_title,
             "page_subtitle": page_subtitle,
@@ -1173,7 +1190,7 @@ def _catalog_list(request, *, model, page_title, page_subtitle, create_url, crea
     )
 
 
-def _catalog_form(request, *, form_class, page_title, page_subtitle, list_url, template_name="core/catalog_form.html", instance=None):
+def _catalog_form(request, *, form_class, page_title, page_subtitle, list_url, template_name="core/catalog/form.html", instance=None):
     form = form_class(request.POST or None, instance=instance)
     if request.method == "POST" and form.is_valid():
         form.save()
@@ -1196,7 +1213,7 @@ def _catalog_delete(request, *, instance, list_url, page_title, page_subtitle):
         return redirect(list_url)
     return render(
         request,
-        "core/catalog_delete.html",
+        "core/catalog/delete.html",
         {
             "object": instance,
             "page_title": page_title,
@@ -1249,7 +1266,7 @@ def admin_branches(request):
     ]
     return render(
         request,
-        "core/admin_branches.html",
+        "core/admin/branches.html",
         {
             "page_title": "Sucursales",
             "page_subtitle": "Gestión de sedes físicas",

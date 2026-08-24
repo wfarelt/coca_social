@@ -1,0 +1,29 @@
+{% extends 'core/admin/layout.html' %}
+{% block title %}{{ page_title }} | Coca Social{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+{% block admin_body %}
+<section class="panel">
+  <div class="panel-header">
+    <div>
+      <h2 class="panel-title">{{ page_title }}</h2>
+      <p class="panel-subtitle mb-0">{{ page_subtitle }}</p>
+    </div>
+    <a class="btn btn-outline-primary btn-sm" href="{% url 'admin_roles' %}">Volver</a>
+  </div>
+  <form method="post" class="row g-3">
+    {% csrf_token %}
+    {% for field in form %}
+    <div class="col-12">
+      <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+      {{ field.errors }}
+    </div>
+    {% endfor %}
+    <div class="col-12 d-flex justify-content-end gap-2">
+      <a class="btn btn-outline-secondary" href="{% url 'admin_roles' %}">Cancelar</a>
+      <button class="btn btn-primary" type="submit">Guardar rol</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

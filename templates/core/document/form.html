@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}{{ page_title }} | Coca Social{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="panel-header">
+    <div>
+      <h2 class="panel-title mb-1">{{ page_title }}</h2>
+      <p class="panel-subtitle mb-0">{{ page_subtitle }}</p>
+    </div>
+    <a class="btn btn-outline-secondary btn-sm" href="{{ list_url }}">Volver al listado</a>
+  </div>
+
+  <form method="post" class="row g-3">
+    {% csrf_token %}
+    {% for field in form %}
+    <div class="col-12 col-md-6 {% if field.field.widget.input_type == 'checkbox' %}col-md-3{% endif %}">
+      <label class="form-label">{{ field.label }}</label>
+      {{ field }}
+      {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+      {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+    </div>
+    {% endfor %}
+    <div class="col-12 d-flex gap-2">
+      <button class="btn btn-primary" type="submit">Guardar</button>
+      <a class="btn btn-outline-secondary" href="{{ list_url }}">Cancelar</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

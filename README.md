@@ -51,8 +51,20 @@ La base funcional ya está iniciada y cuenta con:
 
 ```bash
 python manage.py migrate
+python manage.py seed_default_users
 python manage.py runserver
 ```
+
+## Usuarios por defecto
+
+Después de ejecutar la semilla, quedan creadas estas cuentas base:
+
+- `admin` / `Admin123!`
+- `gerente` / `Gerente123!`
+- `caja` / `Caja123!`
+- `ventas` / `Ventas123!`
+
+Todos los usuarios quedan activos; `admin` además es superusuario.
 
 ## Rutas útiles
 

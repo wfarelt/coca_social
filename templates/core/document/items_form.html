@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}{{ page_title }} | Coca Social{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="panel-header">
+    <div>
+      <h2 class="panel-title mb-1">{{ page_title }}</h2>
+      <p class="panel-subtitle mb-0">{{ page_subtitle }}</p>
+    </div>
+    <a class="btn btn-outline-secondary btn-sm" href="{{ list_url }}">Volver al listado</a>
+  </div>
+
+  <form method="post" class="row g-4">
+    {% csrf_token %}
+    <div class="col-12">
+      <div class="row g-3">
+        {% for field in form %}
+        <div class="col-12 col-md-6 {% if field.field.widget.input_type == 'checkbox' %}col-md-3{% endif %}">
+          <label class="form-label">{{ field.label }}</label>
+          {{ field }}
+          {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="col-12">
+      <div class="panel bg-light border-0 shadow-none">
+        <div class="panel-header mb-3">
+          <div>
+            <h3 class="panel-title h5 mb-1">{{ items_title }}</h3>
+            <p class="panel-subtitle mb-0">{{ items_subtitle }}</p>
+          </div>
+        </div>
+        {{ formset.management_form }}
+        <div class="table-responsive">
+          <table class="table table-sm align-middle table-clean mb-0">
+            <thead>
+              <tr>
+                {% for header in item_headers %}<th>{{ header }}</th>{% endfor %}
+                <th>Eliminar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item_form in formset %}
+              <tr>
+                {% for field in item_form.visible_fields %}
+                  <td>
+                    {{ field }}
+                    {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                  </td>
+                {% endfor %}
+                <td>
+                  {% if item_form.instance.pk %}{{ item_form.DELETE }}{% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 d-flex gap-2">
+      <button class="btn btn-primary" type="submit">Guardar</button>
+      <a class="btn btn-outline-secondary" href="{{ list_url }}">Cancelar</a>
+    </div>
+  </form>
+</section>
+{% endblock %}
