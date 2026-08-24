@@ -23,25 +23,39 @@
         </div>
       </div>
       <nav class="nav flex-column sidebar-nav">
-        <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">Dashboard</a>
-        <a class="nav-link {% if request.resolver_match.url_name == 'pos' %}active{% endif %}" href="{% url 'pos' %}">Punto de Venta</a>
-        <a class="nav-link {% if request.resolver_match.url_name == 'inventory_overview' %}active{% endif %}" href="{% url 'inventory_overview' %}">Inventario</a>
-        <a class="nav-link {% if request.resolver_match.url_name == 'sales_list' %}active{% endif %}" href="{% url 'sales_list' %}">Ventas realizadas</a>
-        <a class="nav-link {% if request.resolver_match.url_name == 'products_list' %}active{% endif %}" href="{% url 'products_list' %}">Productos</a>
-        <a class="nav-link {% if request.resolver_match.url_name == 'categories_list' %}active{% endif %}" href="{% url 'categories_list' %}">Categorías</a>
-        <a class="nav-link {% if request.resolver_match.url_name == 'brands_list' %}active{% endif %}" href="{% url 'brands_list' %}">Marcas</a>
-        <a class="nav-link {% if request.resolver_match.url_name == 'purchases_overview' %}active{% endif %}" href="{% url 'purchases_overview' %}">Compras</a>
-        <a class="nav-link {% if request.resolver_match.url_name == 'purchases_list' %}active{% endif %}" href="{% url 'purchases_list' %}">Compras listado</a>
-        <a class="nav-link {% if request.resolver_match.url_name == 'suppliers_list' %}active{% endif %}" href="{% url 'suppliers_list' %}">Proveedores</a>
-        <a class="nav-link {% if request.resolver_match.url_name == 'transfers_overview' %}active{% endif %}" href="{% url 'transfers_overview' %}">Traspasos</a>
-        <a class="nav-link {% if request.resolver_match.url_name == 'transfers_list' %}active{% endif %}" href="{% url 'transfers_list' %}">Traspasos listado</a>
-        <a class="nav-link {% if request.resolver_match.url_name == 'customers_overview' %}active{% endif %}" href="{% url 'customers_overview' %}">Clientes</a>
-        <a class="nav-link {% if request.resolver_match.url_name == 'customers_list' %}active{% endif %}" href="{% url 'customers_list' %}">Listado de clientes</a>
-        <a class="nav-link {% if request.resolver_match.url_name == 'cash_overview' %}active{% endif %}" href="{% url 'cash_overview' %}">Caja</a>
-        <a class="nav-link {% if request.resolver_match.url_name == 'reports_overview' %}active{% endif %}" href="{% url 'reports_overview' %}">Reportes</a>
+        <div class="sidebar-section">
+          <div class="sidebar-section-label">General</div>
+          <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">Dashboard</a>
+          <a class="nav-link {% if request.resolver_match.url_name == 'pos' %}active{% endif %}" href="{% url 'pos' %}">Punto de Venta</a>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-section-label">Operaciones</div>
+          <a class="nav-link {% if request.resolver_match.url_name == 'sales_list' %}active{% endif %}" href="{% url 'sales_list' %}">Ventas realizadas</a>
+          <a class="nav-link {% if request.resolver_match.url_name == 'purchases_overview' %}active{% endif %}" href="{% url 'purchases_overview' %}">Compras</a>
+          <a class="nav-link {% if request.resolver_match.url_name == 'transfers_overview' %}active{% endif %}" href="{% url 'transfers_overview' %}">Traspasos</a>
+          <a class="nav-link {% if request.resolver_match.url_name == 'cash_overview' %}active{% endif %}" href="{% url 'cash_overview' %}">Caja</a>
+          <a class="nav-link {% if request.resolver_match.url_name == 'reports_overview' %}active{% endif %}" href="{% url 'reports_overview' %}">Reportes</a>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-section-label">Inventario</div>
+          <a class="nav-link {% if request.resolver_match.url_name == 'inventory_overview' %}active{% endif %}" href="{% url 'inventory_overview' %}">Inventario</a>
+          <a class="nav-link {% if request.resolver_match.url_name == 'products_list' %}active{% endif %}" href="{% url 'products_list' %}">Productos</a>
+          <a class="nav-link {% if request.resolver_match.url_name == 'categories_list' %}active{% endif %}" href="{% url 'categories_list' %}">Categorías</a>
+          <a class="nav-link {% if request.resolver_match.url_name == 'brands_list' %}active{% endif %}" href="{% url 'brands_list' %}">Marcas</a>
+          <a class="nav-link {% if request.resolver_match.url_name == 'suppliers_list' %}active{% endif %}" href="{% url 'suppliers_list' %}">Proveedores</a>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-section-label">Clientes</div>
+          <a class="nav-link {% if request.resolver_match.url_name == 'customers_overview' or request.resolver_match.url_name == 'customers_list' %}active{% endif %}" href="{% url 'customers_overview' %}">Clientes</a>
+        </div>
+
         {% if user.is_staff %}
-        <a class="nav-link {% if request.resolver_match.url_name == 'admin_overview' %}active{% endif %}" href="{% url 'admin_overview' %}">Administración</a>
-        <div class="sidebar-group mt-1 mb-2">
+        <div class="sidebar-section">
+          <div class="sidebar-section-label">Administración</div>
+          <a class="nav-link {% if request.resolver_match.url_name == 'admin_overview' %}active{% endif %}" href="{% url 'admin_overview' %}">Administración</a>
           <a class="nav-link ps-4 py-1 small {% if request.resolver_match.url_name == 'admin_branches' %}active{% endif %}" href="{% url 'admin_branches' %}">Sucursales</a>
           <a class="nav-link ps-4 py-1 small {% if request.resolver_match.url_name == 'admin_users' %}active{% endif %}" href="{% url 'admin_users' %}">Usuarios</a>
           <a class="nav-link ps-4 py-1 small {% if request.resolver_match.url_name == 'admin_roles' %}active{% endif %}" href="{% url 'admin_roles' %}">Roles</a>
