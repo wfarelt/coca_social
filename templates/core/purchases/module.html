@@ -2,55 +2,57 @@
 {% block title %}{{ module_title }} | Coca Social{% endblock %}
 {% block page_title %}{{ module_title }}{% endblock %}
 {% block content %}
-<div class="row g-3 mb-4">
-  {% for stat in module_stats %}
-  <div class="col-12 col-md-6 col-xl-3">
-    <article class="metric-card tone-primary">
-      <span class="metric-label">{{ stat.label }}</span>
-      <div class="metric-value">{{ stat.value }}</div>
-    </article>
-  </div>
-  {% endfor %}
-</div>
-
-<section class="panel">
-  <div class="panel-header">
-    <div>
-      <h2 class="panel-title mb-1">{{ module_title }}</h2>
-      <p class="panel-subtitle mb-0">{{ module_subtitle }}</p>
+<div class="container-fluid px-0 px-md-2">
+  <div class="row g-3 g-md-4 mb-4">
+    {% for stat in module_stats %}
+    <div class="col-12 col-sm-6 col-lg-3">
+      <article class="metric-card tone-primary h-100 p-3 p-md-4">
+        <span class="metric-label d-block mb-2">{{ stat.label }}</span>
+        <div class="metric-value fs-4 fs-md-3 fw-semibold">{{ stat.value }}</div>
+      </article>
     </div>
-    <div class="d-flex gap-2 flex-wrap">
-      {% for action in module_actions %}
-      <button class="btn btn-outline-primary btn-sm">{{ action }}</button>
-      {% endfor %}
-    </div>
+    {% endfor %}
   </div>
 
-  <div class="table-responsive">
-    <table class="table table-hover align-middle table-clean mb-0">
-      <thead>
-        <tr>
-          <th>Nombre</th>
-          <th>Referencia</th>
-          <th>Métrica</th>
-          <th>Estado</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in module_rows %}
-        <tr>
-          <td>{{ row.a }}</td>
-          <td>{{ row.b }}</td>
-          <td>{{ row.c }}</td>
-          <td><span class="badge badge-soft">{{ row.d }}</span></td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="4" class="py-5 text-center text-muted">Próximamente se conectará este módulo con datos reales.</td>
-        </tr>
+  <section class="panel shadow-sm border-0">
+    <div class="panel-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 p-3 p-md-4">
+      <div class="w-100">
+        <h2 class="panel-title mb-1">{{ module_title }}</h2>
+        <p class="panel-subtitle mb-0 text-muted">{{ module_subtitle }}</p>
+      </div>
+      <div class="d-flex flex-wrap gap-2 w-100 justify-content-md-end">
+        {% for action in module_actions %}
+        <button class="btn btn-outline-primary btn-sm w-auto px-3">{{ action }}</button>
         {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</section>
+      </div>
+    </div>
+
+    <div class="table-responsive px-3 px-md-4 pb-3 pb-md-4">
+      <table class="table table-hover align-middle table-clean mb-0 text-nowrap">
+        <thead>
+          <tr>
+            <th class="py-3">Nombre</th>
+            <th class="py-3">Referencia</th>
+            <th class="py-3">Métrica</th>
+            <th class="py-3">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in module_rows %}
+          <tr>
+            <td class="py-3">{{ row.a }}</td>
+            <td class="py-3">{{ row.b }}</td>
+            <td class="py-3">{{ row.c }}</td>
+            <td class="py-3"><span class="badge badge-soft rounded-pill">{{ row.d }}</span></td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="4" class="py-5 text-center text-muted">Próximamente se conectará este módulo con datos reales.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
 {% endblock %}
