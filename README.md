@@ -24,6 +24,7 @@ La base funcional ya está iniciada y cuenta con:
 - Documentos operativos para compras y traspasos con líneas embebidas.
 - Registro de inventario, kardex, stock por sucursal, stock bajo y agotados.
 - Ventas con registro de stock, cobro, crédito y movimiento de caja.
+- Devoluciones de ventas y ajustes de inventario con reversa de stock y kardex.
 
 ## Módulos principales
 
@@ -65,13 +66,11 @@ python manage.py runserver
 
 ## Siguientes pasos
 
-1. Reemplazar los KPIs y tablas del dashboard por consultas reales a la base de datos.
-2. Completar la gestión de caja por turno con apertura, movimientos, gastos y cierre.
-3. Agregar autenticación, roles y permisos por sucursal y por módulo.
-4. Implementar devoluciones de ventas y ajuste de inventario con su flujo completo.
-5. Agregar filtros, búsqueda avanzada y paginación en los listados grandes.
-6. Mejorar la experiencia del POS con atajos de teclado, lector de código de barras y validaciones de cobro.
-7. Crear reportes exportables de ventas, compras, inventario, caja y créditos.
+1. Agregar filtros, búsqueda avanzada y paginación en los listados grandes.
+2. Mejorar la experiencia del POS con atajos de teclado, lector de código de barras y validaciones de cobro.
+3. Crear reportes exportables de ventas, compras, inventario, caja y créditos.
+4. Afinar permisos por sucursal y por módulo con reglas más granulares.
+5. Conectar integración API/REST para escenarios de consumo externo.
 
 ## Notas
 

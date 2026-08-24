@@ -553,9 +553,72 @@ class InventoryAdjustment(TimeStampedModel):
     new_quantity = models.DecimalField(max_digits=14, decimal_places=2)
     created_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name="inventory_adjustments")
     notes = models.TextField(blank=True)
+    applied_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self) -> str:
         return f"{self.branch} - {self.product}"
+
+    def apply_to_inventory(self, created_by: User) -> None:
+        from django.utils import timezone
+
+        if self.applied_at:
+            return
+        stock = ProductStock.get_or_create_stock(self.branch, self.product)
+        delta = self.new_quantity - self.previous_quantity
+        stock.apply_delta(delta)
+        movement_type = StockMovement.Type.IN if delta >= 0 else StockMovement.Type.OUT
+        StockMovement.objects.create(
+            branch=self.branch,
+            product=self.product,
+            movement_type=movement_type,
+            quantity=abs(delta),
+            reference=f"AJ-{self.pk}",
+            created_by=created_by,
+        )
+        KardexEntry.objects.create(
+            branch=self.branch,
+            product=self.product,
+            reference=f"AJ-{self.pk}",
+            movement_type=StockMovement.Type.ADJUSTMENT,
+            quantity_in=delta if delta > 0 else Decimal("0.00"),
+            quantity_out=abs(delta) if delta < 0 else Decimal("0.00"),
+            balance=stock.quantity,
+            unit_cost=self.product.purchase_price,
+            created_by=created_by,
+        )
+        self.applied_at = timezone.now()
+        self.save(update_fields=["applied_at", "updated_at"])
+
+    def reverse_inventory(self, created_by: User) -> None:
+        from django.utils import timezone
+
+        if not self.applied_at:
+            return
+        stock = ProductStock.get_or_create_stock(self.branch, self.product)
+        delta = self.previous_quantity - self.new_quantity
+        stock.apply_delta(delta)
+        movement_type = StockMovement.Type.IN if delta >= 0 else StockMovement.Type.OUT
+        StockMovement.objects.create(
+            branch=self.branch,
+            product=self.product,
+            movement_type=movement_type,
+            quantity=abs(delta),
+            reference=f"REV-AJ-{self.pk}",
+            created_by=created_by,
+        )
+        KardexEntry.objects.create(
+            branch=self.branch,
+            product=self.product,
+            reference=f"REV-AJ-{self.pk}",
+            movement_type=StockMovement.Type.ADJUSTMENT,
+            quantity_in=delta if delta > 0 else Decimal("0.00"),
+            quantity_out=abs(delta) if delta < 0 else Decimal("0.00"),
+            balance=stock.quantity,
+            unit_cost=self.product.purchase_price,
+            created_by=created_by,
+        )
+        self.applied_at = None
+        self.save(update_fields=["applied_at", "updated_at"])
 
 
 class StockMovement(TimeStampedModel):

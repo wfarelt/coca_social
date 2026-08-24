@@ -3,7 +3,7 @@ from django.forms import inlineformset_factory
 from django.contrib.auth.models import Group, Permission, User
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 
-from .models import Brand, Branch, CashMovement, CashShift, Category, Customer, Product, SaleReturn, SaleReturnItem, Supplier, Purchase, PurchaseItem, Transfer, TransferItem
+from .models import Brand, Branch, CashMovement, CashShift, Category, Customer, InventoryAdjustment, Product, SaleReturn, SaleReturnItem, Supplier, Purchase, PurchaseItem, Transfer, TransferItem
 
 
 class AppFormMixin:
@@ -204,6 +204,17 @@ class CashMovementForm(AppFormMixin, forms.ModelForm):
 
 class CashCloseForm(AppFormMixin, forms.Form):
     counted_cash = forms.DecimalField(max_digits=12, decimal_places=2, min_value=0)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._apply_bootstrap()
+
+
+class InventoryAdjustmentForm(AppFormMixin, forms.ModelForm):
+    class Meta:
+        model = InventoryAdjustment
+        fields = ["branch", "product", "reason", "previous_quantity", "new_quantity", "notes"]
+        widgets = {"notes": forms.Textarea(attrs={"rows": 3})}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

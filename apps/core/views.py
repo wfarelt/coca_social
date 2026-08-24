@@ -20,6 +20,7 @@ from .forms import (
     BranchForm,
     CategoryForm,
     CustomerForm,
+    InventoryAdjustmentForm,
     SaleReturnForm,
     SaleReturnItemFormSet,
     ProductForm,
@@ -29,7 +30,7 @@ from .forms import (
     TransferForm,
     TransferItemFormSet,
 )
-from .models import Brand, Branch, CashMovement, CashShift, Category, CreditAccount, Customer, Product, ProductStock, Purchase, Sale, SaleItem, SaleReturn, Supplier, Transfer
+from .models import Brand, Branch, CashMovement, CashShift, Category, CreditAccount, Customer, InventoryAdjustment, Product, ProductStock, Purchase, Sale, SaleItem, SaleReturn, Supplier, Transfer
 
 
 def _module_context(title, subtitle, actions, stats=None, rows=None):
@@ -523,7 +524,96 @@ def kardex(request):
 
 
 def inventory_adjustments(request):
-    return render(request, "core/module.html", _module_context("Ajustes de inventario", "Conteos, mermas y correcciones", ["Nuevo ajuste"], [{"label": "Ajustes", "value": "16"}], [{"a": "AJ-118", "b": "Conteo", "c": "-4", "d": "Aplicado"}]))
+    adjustments = InventoryAdjustment.objects.select_related("branch", "product", "created_by").order_by("-created_at")
+    rows = [
+        {
+            "pk": adjustment.pk,
+            "a": f"AJ-{adjustment.pk}" if adjustment.pk else "AJ",
+            "b": adjustment.get_reason_display(),
+            "c": f"{adjustment.previous_quantity} → {adjustment.new_quantity}",
+            "d": "Aplicado" if adjustment.applied_at else "Borrador",
+        }
+        for adjustment in adjustments
+    ]
+    return render(
+        request,
+        "core/document_list.html",
+        {
+            "page_title": "Ajustes de inventario",
+            "page_subtitle": "Conteos, mermas y correcciones",
+            "stats": [
+                {"label": "Ajustes", "value": str(adjustments.count())},
+                {"label": "Aplicados", "value": str(adjustments.filter(applied_at__isnull=False).count())},
+            ],
+            "actions": [{"label": "Nuevo ajuste", "url": "/inventario/ajustes/nuevo/"}],
+            "headers": ["Código", "Motivo", "Cantidad", "Estado"],
+            "rows": [{"cells": [row["a"], row["b"], row["c"], row["d"]], "edit_url": f"/inventario/ajustes/{row['pk']}/editar/", "delete_url": f"/inventario/ajustes/{row['pk']}/eliminar/"} for row in rows],
+        },
+    )
+
+
+def inventory_adjustment_create(request):
+    form = InventoryAdjustmentForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            adjustment = form.save(commit=False)
+            adjustment.created_by = request.user if request.user.is_authenticated else _system_user()
+            adjustment.save()
+            adjustment.apply_to_inventory(request.user if request.user.is_authenticated else _system_user())
+        return redirect("inventory_adjustments")
+    return render(
+        request,
+        "core/catalog_form.html",
+        {
+            "form": form,
+            "page_title": "Nuevo ajuste",
+            "page_subtitle": "Conteo, merma o corrección de stock",
+            "list_url": "/inventario/ajustes/",
+        },
+    )
+
+
+def inventory_adjustment_edit(request, pk):
+    adjustment = get_object_or_404(InventoryAdjustment, pk=pk)
+    form = InventoryAdjustmentForm(request.POST or None, instance=adjustment)
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            if adjustment.applied_at:
+                adjustment.reverse_inventory(request.user if request.user.is_authenticated else _system_user())
+            adjustment = form.save(commit=False)
+            adjustment.created_by = adjustment.created_by or (request.user if request.user.is_authenticated else _system_user())
+            adjustment.save()
+            adjustment.apply_to_inventory(request.user if request.user.is_authenticated else _system_user())
+        return redirect("inventory_adjustments")
+    return render(
+        request,
+        "core/catalog_form.html",
+        {
+            "form": form,
+            "page_title": "Editar ajuste",
+            "page_subtitle": f"AJ-{adjustment.pk}",
+            "list_url": "/inventario/ajustes/",
+        },
+    )
+
+
+def inventory_adjustment_delete(request, pk):
+    adjustment = get_object_or_404(InventoryAdjustment, pk=pk)
+    if request.method == "POST":
+        if adjustment.applied_at:
+            adjustment.reverse_inventory(request.user if request.user.is_authenticated else _system_user())
+        adjustment.delete()
+        return redirect("inventory_adjustments")
+    return render(
+        request,
+        "core/catalog_delete.html",
+        {
+            "object": adjustment,
+            "page_title": "Eliminar ajuste",
+            "page_subtitle": f"AJ-{adjustment.pk}",
+            "list_url": "/inventario/ajustes/",
+        },
+    )
 
 
 def purchases_overview(request):
