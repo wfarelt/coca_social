@@ -1,5 +1,7 @@
+from decimal import Decimal
+
 from django import forms
-from django.forms import inlineformset_factory
+from django.forms import BaseInlineFormSet, inlineformset_factory
 from django.contrib.auth.models import Group, Permission, User
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 
@@ -133,7 +135,21 @@ class PurchaseForm(AppFormMixin, forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["subtotal"].required = False
+        self.fields["tax"].required = False
+        self.fields["total"].required = False
+        self.fields["subtotal"].widget.attrs["readonly"] = True
+        self.fields["tax"].widget.attrs["readonly"] = True
+        self.fields["total"].widget.attrs["readonly"] = True
         self._apply_bootstrap()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        subtotal = cleaned_data.get("subtotal") or Decimal("0.00")
+        tax = cleaned_data.get("tax") or Decimal("0.00")
+        cleaned_data["subtotal"] = subtotal
+        cleaned_data["total"] = subtotal + tax
+        return cleaned_data
 
 
 class PurchaseItemForm(AppFormMixin, forms.ModelForm):
@@ -155,6 +171,33 @@ class PurchaseItemForm(AppFormMixin, forms.ModelForm):
         if quantity is not None and cost_price is not None:
             cleaned_data["line_total"] = quantity * cost_price
         return cleaned_data
+
+
+class PurchaseItemFormSet(BaseInlineFormSet):
+    def calculate_totals(self):
+        total = Decimal("0.00")
+        for form in self.forms:
+            if not form.is_valid() or not form.cleaned_data:
+                continue
+            if form.cleaned_data.get("DELETE"):
+                continue
+            quantity = form.cleaned_data.get("quantity")
+            cost_price = form.cleaned_data.get("cost_price")
+            if quantity is not None and cost_price is not None:
+                total += quantity * cost_price
+        return total
+
+    def clean(self):
+        super().clean()
+        if any(self.errors):
+            return
+        subtotal = self.calculate_totals()
+        if self.instance and hasattr(self.instance, "subtotal"):
+            self.instance.subtotal = subtotal
+            self.instance.total = subtotal + (self.instance.tax or Decimal("0.00"))
+
+
+PurchaseItemFormSet = inlineformset_factory(Purchase, PurchaseItem, form=PurchaseItemForm, formset=PurchaseItemFormSet, extra=3, can_delete=True)
 
 
 class TransferForm(AppFormMixin, forms.ModelForm):
@@ -353,6 +396,5 @@ class GroupAdminForm(AppFormMixin, forms.ModelForm):
         self.fields["permissions"].widget.attrs["class"] = "form-select select2-no-search"
 
 
-PurchaseItemFormSet = inlineformset_factory(Purchase, PurchaseItem, form=PurchaseItemForm, extra=3, can_delete=True)
 TransferItemFormSet = inlineformset_factory(Transfer, TransferItem, form=TransferItemForm, extra=3, can_delete=True)
 SaleReturnItemFormSet = inlineformset_factory(SaleReturn, SaleReturnItem, form=SaleReturnItemForm, extra=3, can_delete=True)

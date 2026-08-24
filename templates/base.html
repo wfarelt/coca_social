@@ -23,44 +23,54 @@
         </div>
       </div>
       <nav class="nav flex-column sidebar-nav">
-        <div class="sidebar-section">
-          <div class="sidebar-section-label">General</div>
-          <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">Dashboard</a>
-          <a class="nav-link {% if request.resolver_match.url_name == 'pos' %}active{% endif %}" href="{% url 'pos' %}">Punto de Venta</a>
-        </div>
+        <details class="sidebar-section" {% if request.resolver_match.url_name == 'dashboard' or request.resolver_match.url_name == 'pos' %}open{% endif %}>
+          <summary class="sidebar-section-label"><span class="sidebar-icon">🏠</span>General</summary>
+          <div class="sidebar-section-body">
+            <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">Dashboard</a>
+            <a class="nav-link {% if request.resolver_match.url_name == 'pos' %}active{% endif %}" href="{% url 'pos' %}">Punto de Venta</a>
+          </div>
+        </details>
 
-        <div class="sidebar-section">
-          <div class="sidebar-section-label">Operaciones</div>
-          <a class="nav-link {% if request.resolver_match.url_name == 'sales_list' %}active{% endif %}" href="{% url 'sales_list' %}">Ventas realizadas</a>
-          <a class="nav-link {% if request.resolver_match.url_name == 'purchases_overview' %}active{% endif %}" href="{% url 'purchases_overview' %}">Compras</a>
-          <a class="nav-link {% if request.resolver_match.url_name == 'transfers_overview' %}active{% endif %}" href="{% url 'transfers_overview' %}">Traspasos</a>
-          <a class="nav-link {% if request.resolver_match.url_name == 'cash_overview' %}active{% endif %}" href="{% url 'cash_overview' %}">Caja</a>
-          <a class="nav-link {% if request.resolver_match.url_name == 'reports_overview' %}active{% endif %}" href="{% url 'reports_overview' %}">Reportes</a>
-        </div>
+        <details class="sidebar-section" {% if request.resolver_match.url_name == 'sales_list' or request.resolver_match.url_name == 'purchases_overview' or request.resolver_match.url_name == 'transfers_overview' or request.resolver_match.url_name == 'cash_overview' or request.resolver_match.url_name == 'reports_overview' %}open{% endif %}>
+          <summary class="sidebar-section-label"><span class="sidebar-icon">⚙️</span>Operaciones</summary>
+          <div class="sidebar-section-body">
+            <a class="nav-link {% if request.resolver_match.url_name == 'sales_list' %}active{% endif %}" href="{% url 'sales_list' %}">Ventas realizadas</a>
+            <a class="nav-link {% if request.resolver_match.url_name == 'purchases_overview' %}active{% endif %}" href="{% url 'purchases_overview' %}">Compras</a>
+            <a class="nav-link {% if request.resolver_match.url_name == 'transfers_overview' %}active{% endif %}" href="{% url 'transfers_overview' %}">Traspasos</a>
+            <a class="nav-link {% if request.resolver_match.url_name == 'cash_overview' %}active{% endif %}" href="{% url 'cash_overview' %}">Caja</a>
+            <a class="nav-link {% if request.resolver_match.url_name == 'reports_overview' %}active{% endif %}" href="{% url 'reports_overview' %}">Reportes</a>
+          </div>
+        </details>
 
-        <div class="sidebar-section">
-          <div class="sidebar-section-label">Inventario</div>
-          <a class="nav-link {% if request.resolver_match.url_name == 'inventory_overview' %}active{% endif %}" href="{% url 'inventory_overview' %}">Inventario</a>
-          <a class="nav-link {% if request.resolver_match.url_name == 'products_list' %}active{% endif %}" href="{% url 'products_list' %}">Productos</a>
-          <a class="nav-link {% if request.resolver_match.url_name == 'categories_list' %}active{% endif %}" href="{% url 'categories_list' %}">Categorías</a>
-          <a class="nav-link {% if request.resolver_match.url_name == 'brands_list' %}active{% endif %}" href="{% url 'brands_list' %}">Marcas</a>
-          <a class="nav-link {% if request.resolver_match.url_name == 'suppliers_list' %}active{% endif %}" href="{% url 'suppliers_list' %}">Proveedores</a>
-        </div>
+        <details class="sidebar-section" {% if request.resolver_match.url_name == 'inventory_overview' or request.resolver_match.url_name == 'products_list' or request.resolver_match.url_name == 'categories_list' or request.resolver_match.url_name == 'brands_list' or request.resolver_match.url_name == 'suppliers_list' %}open{% endif %}>
+          <summary class="sidebar-section-label"><span class="sidebar-icon">📦</span>Inventario</summary>
+          <div class="sidebar-section-body">
+            <a class="nav-link {% if request.resolver_match.url_name == 'inventory_overview' %}active{% endif %}" href="{% url 'inventory_overview' %}">Inventario</a>
+            <a class="nav-link {% if request.resolver_match.url_name == 'products_list' %}active{% endif %}" href="{% url 'products_list' %}">Productos</a>
+            <a class="nav-link {% if request.resolver_match.url_name == 'categories_list' %}active{% endif %}" href="{% url 'categories_list' %}">Categorías</a>
+            <a class="nav-link {% if request.resolver_match.url_name == 'brands_list' %}active{% endif %}" href="{% url 'brands_list' %}">Marcas</a>
+            <a class="nav-link {% if request.resolver_match.url_name == 'suppliers_list' %}active{% endif %}" href="{% url 'suppliers_list' %}">Proveedores</a>
+          </div>
+        </details>
 
-        <div class="sidebar-section">
-          <div class="sidebar-section-label">Clientes</div>
-          <a class="nav-link {% if request.resolver_match.url_name == 'customers_overview' or request.resolver_match.url_name == 'customers_list' %}active{% endif %}" href="{% url 'customers_overview' %}">Clientes</a>
-        </div>
+        <details class="sidebar-section" {% if request.resolver_match.url_name == 'customers_overview' or request.resolver_match.url_name == 'customers_list' %}open{% endif %}>
+          <summary class="sidebar-section-label"><span class="sidebar-icon">👥</span>Clientes</summary>
+          <div class="sidebar-section-body">
+            <a class="nav-link {% if request.resolver_match.url_name == 'customers_overview' or request.resolver_match.url_name == 'customers_list' %}active{% endif %}" href="{% url 'customers_overview' %}">Clientes</a>
+          </div>
+        </details>
 
         {% if user.is_staff %}
-        <div class="sidebar-section">
-          <div class="sidebar-section-label">Administración</div>
-          <a class="nav-link {% if request.resolver_match.url_name == 'admin_overview' %}active{% endif %}" href="{% url 'admin_overview' %}">Administración</a>
-          <a class="nav-link ps-4 py-1 small {% if request.resolver_match.url_name == 'admin_branches' %}active{% endif %}" href="{% url 'admin_branches' %}">Sucursales</a>
-          <a class="nav-link ps-4 py-1 small {% if request.resolver_match.url_name == 'admin_users' %}active{% endif %}" href="{% url 'admin_users' %}">Usuarios</a>
-          <a class="nav-link ps-4 py-1 small {% if request.resolver_match.url_name == 'admin_roles' %}active{% endif %}" href="{% url 'admin_roles' %}">Roles</a>
-          <a class="nav-link ps-4 py-1 small {% if request.resolver_match.url_name == 'admin_settings' %}active{% endif %}" href="{% url 'admin_settings' %}">Configuración</a>
-        </div>
+        <details class="sidebar-section" {% if request.resolver_match.url_name == 'admin_overview' or request.resolver_match.url_name == 'admin_branches' or request.resolver_match.url_name == 'admin_users' or request.resolver_match.url_name == 'admin_roles' or request.resolver_match.url_name == 'admin_settings' %}open{% endif %}>
+          <summary class="sidebar-section-label"><span class="sidebar-icon">🛡️</span>Administración</summary>
+          <div class="sidebar-section-body">
+            <a class="nav-link {% if request.resolver_match.url_name == 'admin_overview' %}active{% endif %}" href="{% url 'admin_overview' %}">Administración</a>
+            <a class="nav-link ps-4 py-1 small {% if request.resolver_match.url_name == 'admin_branches' %}active{% endif %}" href="{% url 'admin_branches' %}">Sucursales</a>
+            <a class="nav-link ps-4 py-1 small {% if request.resolver_match.url_name == 'admin_users' %}active{% endif %}" href="{% url 'admin_users' %}">Usuarios</a>
+            <a class="nav-link ps-4 py-1 small {% if request.resolver_match.url_name == 'admin_roles' %}active{% endif %}" href="{% url 'admin_roles' %}">Roles</a>
+            <a class="nav-link ps-4 py-1 small {% if request.resolver_match.url_name == 'admin_settings' %}active{% endif %}" href="{% url 'admin_settings' %}">Configuración</a>
+          </div>
+        </details>
         {% endif %}
       </nav>
     </aside>
@@ -72,6 +82,7 @@
           <h1 class="page-title mb-0">{% block page_title %}Dashboard{% endblock %}</h1>
         </div>
         <div class="topbar-actions">
+          <div class="live-clock" id="liveClock" aria-live="polite">--:--</div>
           <form method="post" action="{% url 'set_selected_branch' %}" class="d-inline-flex">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ request.get_full_path }}">
@@ -108,5 +119,19 @@
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
   {% load static %}
   <script src="{% static 'js/app.js' %}"></script>
+  <script>
+    function updateClock() {
+      const now = new Date();
+      const pad = (value) => String(value).padStart(2, '0');
+      const time = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+      const date = now.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const clockEl = document.getElementById('liveClock');
+      if (clockEl) {
+        clockEl.textContent = `${time} · ${date}`;
+      }
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+  </script>
 </body>
 </html>

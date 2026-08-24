@@ -761,15 +761,40 @@ def inventory_adjustment_delete(request, pk):
 
 
 def purchases_overview(request):
-    return render(request, "core/purchases/module.html", _module_context("Compras", "Órdenes, entradas y proveedores", ["Listado", "Nueva compra", "Proveedores"], [{"label": "Compras mes", "value": "Bs 184,900"}], [{"a": "C-1209", "b": "Distribuidora XYZ", "c": "Bs 18,240", "d": "Registrada"}]))
+    purchases = Purchase.objects.select_related("branch", "supplier").order_by("-purchase_date", "-created_at")[:8]
+    rows = []
+    for purchase in purchases:
+        rows.append(
+            {
+                "cells": [purchase.folio, purchase.branch.name, purchase.supplier.name, purchase.purchase_date, purchase.total, purchase.get_status_display()],
+                "edit_url": f"/compras/{purchase.pk}/editar/",
+                "delete_url": f"/compras/{purchase.pk}/eliminar/",
+            }
+        )
+    return render(
+        request,
+        "core/document/list.html",
+        {
+            "page_title": "Compras",
+            "page_subtitle": "Registro de compras y entradas de mercancía",
+            "stats": [
+                {"label": "Compras", "value": str(Purchase.objects.count())},
+                {"label": "Registradas", "value": str(Purchase.objects.filter(status=Purchase.Status.POSTED).count())},
+                {"label": "Total", "value": f"Bs {Purchase.objects.aggregate(total=Sum('total'))['total'] or 0:,.2f}"},
+            ],
+            "actions": [{"label": "Nueva compra", "url": "/compras/nueva/"}, {"label": "Proveedores", "url": "/catalogos/proveedores/"}],
+            "headers": ["Folio", "Sucursal", "Proveedor", "Fecha", "Total", "Estado"],
+            "rows": rows,
+        },
+    )
 
 
 def new_purchase(request):
-    return render(request, "core/purchases/module.html", _module_context("Nueva compra", "Captura rápida por producto o proveedor", ["Guardar borrador", "Registrar"], [{"label": "Líneas", "value": "0"}], []))
+    return purchase_create(request)
 
 
 def suppliers(request):
-    return render(request, "core/purchases/module.html", _module_context("Proveedores", "Catálogo de abastecedores", ["Nuevo proveedor"], [{"label": "Proveedores", "value": "24"}], [{"a": "Distribuidora XYZ", "b": "Activo", "c": "555-1234", "d": "Norte"}]))
+    return suppliers_list(request)
 
 
 def _system_user():
@@ -807,7 +832,12 @@ def purchase_create(request):
     formset = PurchaseItemFormSet(request.POST or None)
     if request.method == "POST" and form.is_valid() and formset.is_valid():
         with transaction.atomic():
-            purchase = form.save()
+            subtotal = formset.calculate_totals()
+            purchase = form.save(commit=False)
+            purchase.subtotal = subtotal
+            purchase.tax = purchase.tax or Decimal("0.00")
+            purchase.total = subtotal + purchase.tax
+            purchase.save()
             formset.instance = purchase
             formset.save()
             if purchase.status == Purchase.Status.POSTED:
@@ -835,7 +865,12 @@ def purchase_edit(request, pk):
     formset = PurchaseItemFormSet(request.POST or None, instance=purchase)
     if request.method == "POST" and form.is_valid() and formset.is_valid():
         with transaction.atomic():
-            purchase = form.save()
+            subtotal = formset.calculate_totals()
+            purchase = form.save(commit=False)
+            purchase.subtotal = subtotal
+            purchase.tax = purchase.tax or Decimal("0.00")
+            purchase.total = subtotal + purchase.tax
+            purchase.save()
             formset.save()
             if purchase.status == Purchase.Status.POSTED:
                 purchase.post_to_inventory(_system_user())
