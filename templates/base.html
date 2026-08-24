@@ -71,7 +71,10 @@
           </form>
           <button class="btn btn-light btn-sm">Notificaciones</button>
           {% if user.is_authenticated %}
-          <a class="btn btn-outline-light btn-sm" href="{% url 'logout' %}">Salir</a>
+          <form method="post" action="{% url 'logout' %}" class="d-inline">
+            {% csrf_token %}
+            <button class="btn btn-light btn-sm" type="submit">Salir</button>
+          </form>
           <div class="user-chip">{{ user.username|slice:":2"|upper }}</div>
           {% else %}
           <a class="btn btn-light btn-sm" href="{% url 'login' %}">Ingresar</a>

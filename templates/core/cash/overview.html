@@ -5,8 +5,8 @@
 <div class="row g-3 mb-4">
   <div class="col-12 col-md-6 col-xl-3"><article class="metric-card tone-primary"><span class="metric-label">Sucursal activa</span><div class="metric-value">{{ branch|default:'-' }}</div></article></div>
   <div class="col-12 col-md-6 col-xl-3"><article class="metric-card tone-success"><span class="metric-label">Turno abierto</span><div class="metric-value">{% if open_shift %}Sí{% else %}No{% endif %}</div></article></div>
-  <div class="col-12 col-md-6 col-xl-3"><article class="metric-card tone-warning"><span class="metric-label">Efectivo esperado</span><div class="metric-value">${{ open_shift.expected_cash|default:'0.00' }}</div></article></div>
-  <div class="col-12 col-md-6 col-xl-3"><article class="metric-card tone-danger"><span class="metric-label">Diferencia</span><div class="metric-value">${{ open_shift.difference|default:'0.00' }}</div></article></div>
+  <div class="col-12 col-md-6 col-xl-3"><article class="metric-card tone-warning"><span class="metric-label">Efectivo esperado</span><div class="metric-value">Bs {{ open_shift.expected_cash|default:'0.00' }}</div></article></div>
+  <div class="col-12 col-md-6 col-xl-3"><article class="metric-card tone-danger"><span class="metric-label">Diferencia</span><div class="metric-value">Bs {{ open_shift.difference|default:'0.00' }}</div></article></div>
 </div>
 
 <div class="row g-3">
@@ -26,10 +26,10 @@
       </div>
       {% if open_shift %}
       <div class="cash-summary mb-3">
-        <div><span>Inicio</span><strong>${{ open_shift.initial_amount }}</strong></div>
-        <div><span>Ingresos</span><strong>${{ open_shift.expected_cash }}</strong></div>
-        <div><span>Contado</span><strong>${{ open_shift.counted_cash }}</strong></div>
-        <div><span>Diferencia</span><strong>${{ open_shift.difference }}</strong></div>
+        <div><span>Inicio</span><strong>Bs {{ open_shift.initial_amount }}</strong></div>
+        <div><span>Ingresos</span><strong>Bs {{ open_shift.expected_cash }}</strong></div>
+        <div><span>Contado</span><strong>Bs {{ open_shift.counted_cash }}</strong></div>
+        <div><span>Diferencia</span><strong>Bs {{ open_shift.difference }}</strong></div>
       </div>
       <p class="text-muted mb-0">Sucursal: {{ open_shift.branch }} · Usuario: {{ open_shift.user }} · Estado: {{ open_shift.get_status_display }}</p>
       {% else %}
@@ -48,7 +48,7 @@
             <tr>
               <td>{{ movement.get_movement_type_display }}</td>
               <td>{{ movement.concept }}</td>
-              <td>${{ movement.amount }}</td>
+              <td>Bs {{ movement.amount }}</td>
               <td>{{ movement.created_by }}</td>
             </tr>
             {% empty %}
@@ -76,7 +76,7 @@
               <td>{{ shift.opened_at|date:"d/m/Y H:i" }}</td>
               <td>{% if shift.closed_at %}{{ shift.closed_at|date:"d/m/Y H:i" }}{% else %}-{% endif %}</td>
               <td>{{ shift.get_status_display }}</td>
-              <td>${{ shift.difference }}</td>
+              <td>Bs {{ shift.difference }}</td>
             </tr>
             {% empty %}
             <tr><td colspan="6" class="text-center text-muted py-4">Todavía no hay turnos registrados</td></tr>

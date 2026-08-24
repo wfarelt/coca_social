@@ -27,7 +27,7 @@
       <div class="chart-placeholder">
         <div class="chart-bars">
           {% for day in weekly_sales %}
-          <span style="height: {{ day.height }}%" title="{{ day.label }}: ${{ day.value }}"></span>
+          <span style="height: {{ day.height }}%" title="{{ day.label }}: Bs {{ day.value }}"></span>
           {% endfor %}
         </div>
         <div class="d-flex justify-content-between mt-3 text-muted small">
@@ -45,10 +45,10 @@
         </div>
       </div>
       <div class="cash-summary">
-        <div><span>Ingresos</span><strong>${{ cash_summary.income }}</strong></div>
-        <div><span>Egresos</span><strong>${{ cash_summary.expense }}</strong></div>
-        <div><span>Efectivo esperado</span><strong>${{ cash_summary.expected }}</strong></div>
-        <div><span>Diferencia</span><strong class="text-success">${{ cash_summary.difference }}</strong></div>
+        <div><span>Ingresos</span><strong>Bs {{ cash_summary.income }}</strong></div>
+        <div><span>Egresos</span><strong>Bs {{ cash_summary.expense }}</strong></div>
+        <div><span>Efectivo esperado</span><strong>Bs {{ cash_summary.expected }}</strong></div>
+        <div><span>Diferencia</span><strong class="text-success">Bs {{ cash_summary.difference }}</strong></div>
       </div>
     </section>
   </div>
@@ -128,7 +128,7 @@
             <strong>{{ product.name }}</strong>
             <p class="mb-0 text-muted small">{{ product.qty }} vendidos</p>
           </div>
-          <strong>${{ product.revenue }}</strong>
+          <strong>Bs {{ product.revenue }}</strong>
         </article>
         {% empty %}
         <div class="text-center text-muted py-4">Sin ventas registradas</div>
@@ -145,10 +145,10 @@
         </div>
       </div>
       <div class="row g-3">
-        <div class="col-12 col-md-3"><article class="metric-card tone-success"><span class="metric-label">Ingresos</span><div class="metric-value fs-4">${{ cash_summary.income }}</div></article></div>
-        <div class="col-12 col-md-3"><article class="metric-card tone-danger"><span class="metric-label">Egresos</span><div class="metric-value fs-4">${{ cash_summary.expense }}</div></article></div>
-        <div class="col-12 col-md-3"><article class="metric-card tone-primary"><span class="metric-label">Contado</span><div class="metric-value fs-4">${{ cash_summary.counted }}</div></article></div>
-        <div class="col-12 col-md-3"><article class="metric-card tone-warning"><span class="metric-label">Diferencia</span><div class="metric-value fs-4">${{ cash_summary.difference }}</div></article></div>
+        <div class="col-12 col-md-3"><article class="metric-card tone-success"><span class="metric-label">Ingresos</span><div class="metric-value fs-4">Bs {{ cash_summary.income }}</div></article></div>
+        <div class="col-12 col-md-3"><article class="metric-card tone-danger"><span class="metric-label">Egresos</span><div class="metric-value fs-4">Bs {{ cash_summary.expense }}</div></article></div>
+        <div class="col-12 col-md-3"><article class="metric-card tone-primary"><span class="metric-label">Contado</span><div class="metric-value fs-4">Bs {{ cash_summary.counted }}</div></article></div>
+        <div class="col-12 col-md-3"><article class="metric-card tone-warning"><span class="metric-label">Diferencia</span><div class="metric-value fs-4">Bs {{ cash_summary.difference }}</div></article></div>
       </div>
     </section>
   </div>

@@ -13,7 +13,7 @@
 
   <div class="row g-3 mb-3">
     <div class="col-12 col-md-4"><article class="metric-card tone-primary"><span class="metric-label">Cliente</span><div class="metric-value fs-4">{{ sale.customer.name|default:'Consumidor final' }}</div></article></div>
-    <div class="col-12 col-md-4"><article class="metric-card tone-success"><span class="metric-label">Total</span><div class="metric-value fs-4">${{ sale.total }}</div></article></div>
+    <div class="col-12 col-md-4"><article class="metric-card tone-success"><span class="metric-label">Total</span><div class="metric-value fs-4">Bs {{ sale.total }}</div></article></div>
     <div class="col-12 col-md-4"><article class="metric-card tone-warning"><span class="metric-label">Estado</span><div class="metric-value fs-4">{{ sale.get_status_display }}</div></article></div>
   </div>
 
@@ -33,9 +33,9 @@
         <tr>
           <td>{{ item.product.name }}</td>
           <td>{{ item.quantity }}</td>
-          <td>${{ item.unit_price }}</td>
-          <td>${{ item.discount }}</td>
-          <td>${{ item.line_total }}</td>
+          <td>Bs {{ item.unit_price }}</td>
+          <td>Bs {{ item.discount }}</td>
+          <td>Bs {{ item.line_total }}</td>
         </tr>
         {% endfor %}
       </tbody>

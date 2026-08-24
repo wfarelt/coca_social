@@ -7,7 +7,7 @@
       <span class="quick-product-stock">{{ stock.quantity|default:0 }} en stock</span>
       {% endwith %}
       <strong>{{ product.name }}</strong>
-      <span class="quick-product-price">${{ product.sale_price|default:0 }}</span>
+      <span class="quick-product-price">Bs {{ product.sale_price|default:0 }}</span>
     </button>
   </form>
   {% empty %}

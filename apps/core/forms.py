@@ -21,6 +21,7 @@ class BranchForm(AppFormMixin, forms.ModelForm):
     class Meta:
         model = Branch
         fields = ["name", "code", "address", "is_active"]
+        labels = {"name": "Nombre", "code": "Código", "address": "Dirección", "is_active": "Activa"}
         widgets = {"address": forms.Textarea(attrs={"rows": 3})}
 
     def __init__(self, *args, **kwargs):
@@ -32,6 +33,7 @@ class CategoryForm(AppFormMixin, forms.ModelForm):
     class Meta:
         model = Category
         fields = ["name", "is_active"]
+        labels = {"name": "Nombre", "is_active": "Activa"}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -42,6 +44,7 @@ class BrandForm(AppFormMixin, forms.ModelForm):
     class Meta:
         model = Brand
         fields = ["name", "is_active"]
+        labels = {"name": "Nombre", "is_active": "Activa"}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -52,6 +55,7 @@ class SupplierForm(AppFormMixin, forms.ModelForm):
     class Meta:
         model = Supplier
         fields = ["name", "tax_id", "phone", "email", "address", "is_active"]
+        labels = {"name": "Nombre", "tax_id": "NIT", "phone": "Teléfono", "email": "Correo", "address": "Dirección", "is_active": "Activo"}
         widgets = {"address": forms.Textarea(attrs={"rows": 3})}
 
     def __init__(self, *args, **kwargs):
@@ -74,6 +78,18 @@ class ProductForm(AppFormMixin, forms.ModelForm):
             "min_stock",
             "is_active",
         ]
+        labels = {
+            "name": "Nombre",
+            "code": "Código",
+            "barcode": "Código de barras",
+            "category": "Categoría",
+            "brand": "Marca",
+            "unit": "Unidad",
+            "purchase_price": "Precio de compra",
+            "sale_price": "Precio de venta",
+            "min_stock": "Stock mínimo",
+            "is_active": "Activo",
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -84,6 +100,7 @@ class CustomerForm(AppFormMixin, forms.ModelForm):
     class Meta:
         model = Customer
         fields = ["name", "tax_id", "phone", "email", "credit_limit", "balance", "is_active"]
+        labels = {"name": "Nombre", "tax_id": "NIT", "phone": "Teléfono", "email": "Correo", "credit_limit": "Límite de crédito", "balance": "Saldo", "is_active": "Activo"}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -94,6 +111,7 @@ class PurchaseForm(AppFormMixin, forms.ModelForm):
     class Meta:
         model = Purchase
         fields = ["branch", "supplier", "folio", "status", "purchase_date", "subtotal", "tax", "total", "notes"]
+        labels = {"branch": "Sucursal", "supplier": "Proveedor", "folio": "Folio", "status": "Estado", "purchase_date": "Fecha de compra", "subtotal": "Subtotal", "tax": "Impuesto", "total": "Total", "notes": "Notas"}
         widgets = {"purchase_date": forms.DateInput(attrs={"type": "date"}), "notes": forms.Textarea(attrs={"rows": 3})}
 
     def __init__(self, *args, **kwargs):
@@ -105,6 +123,7 @@ class PurchaseItemForm(AppFormMixin, forms.ModelForm):
     class Meta:
         model = PurchaseItem
         fields = ["product", "quantity", "cost_price", "line_total"]
+        labels = {"product": "Producto", "quantity": "Cantidad", "cost_price": "Costo unitario", "line_total": "Total"}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -125,6 +144,7 @@ class TransferForm(AppFormMixin, forms.ModelForm):
     class Meta:
         model = Transfer
         fields = ["code", "from_branch", "to_branch", "status", "notes"]
+        labels = {"code": "Código", "from_branch": "Sucursal origen", "to_branch": "Sucursal destino", "status": "Estado", "notes": "Notas"}
         widgets = {"notes": forms.Textarea(attrs={"rows": 3})}
 
     def __init__(self, *args, **kwargs):
@@ -136,6 +156,7 @@ class TransferItemForm(AppFormMixin, forms.ModelForm):
     class Meta:
         model = TransferItem
         fields = ["product", "requested_quantity", "received_quantity"]
+        labels = {"product": "Producto", "requested_quantity": "Cantidad solicitada", "received_quantity": "Cantidad recibida"}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -155,6 +176,7 @@ class SaleReturnForm(AppFormMixin, forms.ModelForm):
     class Meta:
         model = SaleReturn
         fields = ["branch", "sale", "code", "reason", "status"]
+        labels = {"branch": "Sucursal", "sale": "Venta", "code": "Código", "reason": "Motivo", "status": "Estado"}
         widgets = {"reason": forms.Textarea(attrs={"rows": 3})}
 
     def __init__(self, *args, **kwargs):
@@ -166,6 +188,7 @@ class SaleReturnItemForm(AppFormMixin, forms.ModelForm):
     class Meta:
         model = SaleReturnItem
         fields = ["product", "quantity", "unit_price", "line_total"]
+        labels = {"product": "Producto", "quantity": "Cantidad", "unit_price": "Precio unitario", "line_total": "Total"}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -186,6 +209,7 @@ class CashShiftOpenForm(AppFormMixin, forms.ModelForm):
     class Meta:
         model = CashShift
         fields = ["branch", "initial_amount"]
+        labels = {"branch": "Sucursal", "initial_amount": "Monto inicial"}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -196,6 +220,7 @@ class CashMovementForm(AppFormMixin, forms.ModelForm):
     class Meta:
         model = CashMovement
         fields = ["movement_type", "concept", "amount"]
+        labels = {"movement_type": "Tipo", "concept": "Concepto", "amount": "Monto"}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -203,7 +228,7 @@ class CashMovementForm(AppFormMixin, forms.ModelForm):
 
 
 class CashCloseForm(AppFormMixin, forms.Form):
-    counted_cash = forms.DecimalField(max_digits=12, decimal_places=2, min_value=0)
+    counted_cash = forms.DecimalField(max_digits=12, decimal_places=2, min_value=0, label="Efectivo contado")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -214,6 +239,7 @@ class InventoryAdjustmentForm(AppFormMixin, forms.ModelForm):
     class Meta:
         model = InventoryAdjustment
         fields = ["branch", "product", "reason", "previous_quantity", "new_quantity", "notes"]
+        labels = {"branch": "Sucursal", "product": "Producto", "reason": "Motivo", "previous_quantity": "Cantidad anterior", "new_quantity": "Cantidad nueva", "notes": "Notas"}
         widgets = {"notes": forms.Textarea(attrs={"rows": 3})}
 
     def __init__(self, *args, **kwargs):
@@ -238,10 +264,23 @@ class UserAdminCreateForm(AppFormMixin, UserCreationForm):
             "groups",
             "user_permissions",
         ]
+        labels = {
+            "username": "Usuario",
+            "first_name": "Nombres",
+            "last_name": "Apellidos",
+            "email": "Correo",
+            "is_active": "Activo",
+            "is_staff": "Es personal",
+            "is_superuser": "Es superusuario",
+            "groups": "Roles",
+            "user_permissions": "Permisos",
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._apply_bootstrap()
+        self.fields["password1"].label = "Contraseña"
+        self.fields["password2"].label = "Confirmar contraseña"
         self.fields["groups"].widget.attrs["class"] = "form-select select2-no-search"
         self.fields["user_permissions"].widget.attrs["class"] = "form-select select2-no-search"
 
@@ -264,6 +303,17 @@ class UserAdminChangeForm(AppFormMixin, UserChangeForm):
             "groups",
             "user_permissions",
         ]
+        labels = {
+            "username": "Usuario",
+            "first_name": "Nombres",
+            "last_name": "Apellidos",
+            "email": "Correo",
+            "is_active": "Activo",
+            "is_staff": "Es personal",
+            "is_superuser": "Es superusuario",
+            "groups": "Roles",
+            "user_permissions": "Permisos",
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -278,6 +328,7 @@ class GroupAdminForm(AppFormMixin, forms.ModelForm):
     class Meta:
         model = Group
         fields = ["name", "permissions"]
+        labels = {"name": "Nombre", "permissions": "Permisos"}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

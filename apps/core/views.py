@@ -77,13 +77,13 @@ def dashboard(request):
         {
             "folio": sale.folio,
             "customer": sale.customer.name if sale.customer else "Consumidor final",
-            "amount": f"${sale.total}",
+            "amount": f"Bs {sale.total}",
             "status": sale.get_status_display(),
         }
         for sale in sales_qs.order_by("-sold_at", "-created_at")[:5]
     ]
     if not recent_sales:
-        recent_sales = [{"folio": "Sin ventas", "customer": "-", "amount": "$0", "status": "Pendiente"}]
+        recent_sales = [{"folio": "Sin ventas", "customer": "-", "amount": "Bs 0", "status": "Pendiente"}]
 
     low_stock = [
         {
@@ -151,10 +151,10 @@ def dashboard(request):
         "branches": list(Branch.objects.filter(is_active=True).values_list("name", flat=True)) or ["Sucursal Centro"],
         "active_branch": branch.name if branch else "Sucursal Centro",
         "kpis": [
-            {"label": "Ventas de hoy", "value": f"${today_sales_total}", "delta": f"{today_sales_count} tickets", "tone": "success"},
-            {"label": "Utilidad", "value": f"${utility}", "delta": "Estimado bruto", "tone": "primary"},
+            {"label": "Ventas de hoy", "value": f"Bs {today_sales_total}", "delta": f"{today_sales_count} tickets", "tone": "success"},
+            {"label": "Utilidad", "value": f"Bs {utility}", "delta": "Estimado bruto", "tone": "primary"},
             {"label": "Stock bajo", "value": str(low_stock_qs.count()), "delta": f"{out_stock_qs.count()} agotados", "tone": "warning"},
-            {"label": "Créditos pendientes", "value": f"${pending_credits_total}", "delta": f"{credits_qs.count()} clientes", "tone": "danger"},
+            {"label": "Créditos pendientes", "value": f"Bs {pending_credits_total}", "delta": f"{credits_qs.count()} clientes", "tone": "danger"},
         ],
         "weekly_sales": weekly_sales,
         "cash_summary": {
@@ -407,7 +407,7 @@ def sales_returns(request):
             "pk": sale_return.pk,
             "a": sale_return.code,
             "b": sale_return.sale.folio,
-            "c": f"${sale_return.total}",
+            "c": f"Bs {sale_return.total}",
             "d": sale_return.get_status_display(),
         }
         for sale_return in returns
@@ -420,7 +420,7 @@ def sales_returns(request):
             "page_subtitle": "Control de notas de devolución y ajustes",
             "stats": [
                 {"label": "Devoluciones", "value": str(returns.count())},
-                {"label": "Monto", "value": f"${returns.aggregate(total=Sum('total'))['total'] or 0}"},
+                {"label": "Monto", "value": f"Bs {returns.aggregate(total=Sum('total'))['total'] or 0}"},
             ],
             "actions": [{"label": "Registrar devolución", "url": "/ventas/devoluciones/nueva/"}],
             "headers": ["Código", "Venta", "Monto", "Estado"],
@@ -560,7 +560,7 @@ def inventory_overview(request):
 
 
 def products(request):
-    return render(request, "core/inventory/module.html", _module_context("Productos", "Alta, edición y control de artículos", ["Nuevo producto", "Importar"], [{"label": "Activos", "value": "1,201"}], [{"a": "Arroz 1 kg", "b": "ARZ-001", "c": "$18 / $26", "d": "Activo"}]))
+    return render(request, "core/inventory/module.html", _module_context("Productos", "Alta, edición y control de artículos", ["Nuevo producto", "Importar"], [{"label": "Activos", "value": "1,201"}], [{"a": "Arroz 1 kg", "b": "ARZ-001", "c": "Bs 18 / Bs 26", "d": "Activo"}]))
 
 
 def categories(request):
@@ -734,7 +734,7 @@ def inventory_adjustment_delete(request, pk):
 
 
 def purchases_overview(request):
-    return render(request, "core/purchases/module.html", _module_context("Compras", "Órdenes, entradas y proveedores", ["Listado", "Nueva compra", "Proveedores"], [{"label": "Compras mes", "value": "$184,900"}], [{"a": "C-1209", "b": "Distribuidora XYZ", "c": "$18,240", "d": "Registrada"}]))
+    return render(request, "core/purchases/module.html", _module_context("Compras", "Órdenes, entradas y proveedores", ["Listado", "Nueva compra", "Proveedores"], [{"label": "Compras mes", "value": "Bs 184,900"}], [{"a": "C-1209", "b": "Distribuidora XYZ", "c": "Bs 18,240", "d": "Registrada"}]))
 
 
 def new_purchase(request):
@@ -955,15 +955,15 @@ def pending_transfers(request):
 
 
 def customers_overview(request):
-    return render(request, "core/clients/module.html", _module_context("Clientes", "Catálogo de clientes y consumo", ["Nuevo cliente"], [{"label": "Clientes", "value": "486"}], [{"a": "Tienda López", "b": "Activo", "c": "$2,100", "d": "Crédito"}]))
+    return render(request, "core/clients/module.html", _module_context("Clientes", "Catálogo de clientes y consumo", ["Nuevo cliente"], [{"label": "Clientes", "value": "486"}], [{"a": "Tienda López", "b": "Activo", "c": "Bs 2,100", "d": "Crédito"}]))
 
 
 def credits_overview(request):
-    return render(request, "core/credits/module.html", _module_context("Créditos / Fiados", "Saldo, vencimientos y cartera", ["Cobrar"], [{"label": "Pendientes", "value": "$9,240"}], [{"a": "Tienda López", "b": "$860", "c": "15 días", "d": "Vencido"}]))
+    return render(request, "core/credits/module.html", _module_context("Créditos / Fiados", "Saldo, vencimientos y cartera", ["Cobrar"], [{"label": "Pendientes", "value": "Bs 9,240"}], [{"a": "Tienda López", "b": "Bs 860", "c": "15 días", "d": "Vencido"}]))
 
 
 def collections_overview(request):
-    return render(request, "core/credits/module.html", _module_context("Cobros", "Aplicación de pagos y abonos", ["Registrar cobro"], [{"label": "Cobros hoy", "value": "$3,200"}], [{"a": "CO-112", "b": "Tienda López", "c": "$860", "d": "Aplicado"}]))
+    return render(request, "core/credits/module.html", _module_context("Cobros", "Aplicación de pagos y abonos", ["Registrar cobro"], [{"label": "Cobros hoy", "value": "Bs 3,200"}], [{"a": "CO-112", "b": "Tienda López", "c": "Bs 860", "d": "Aplicado"}]))
 
 
 def cash_overview(request):
@@ -1109,10 +1109,10 @@ def reports_overview(request):
             "Ventas, compras, inventario, caja y devoluciones",
             ["Exportar PDF", "Exportar Excel"],
             [
-                {"label": "Ventas", "value": f"${sales_total}"},
-                {"label": "Compras", "value": f"${purchases_total}"},
-                {"label": "Devoluciones", "value": f"${returns_total}"},
-                {"label": "Créditos", "value": f"${credits_total}"},
+                {"label": "Ventas", "value": f"Bs {sales_total}"},
+                {"label": "Compras", "value": f"Bs {purchases_total}"},
+                {"label": "Devoluciones", "value": f"Bs {returns_total}"},
+                {"label": "Créditos", "value": f"Bs {credits_total}"},
             ],
             [
                 {"a": "Inventario", "b": "Stock crítico", "c": f"{low_stock_count} bajo", "d": "Alerta"},
@@ -1454,7 +1454,7 @@ def products_list(request):
         create_label="Nuevo producto",
         headers=["Código", "Nombre", "Categoría", "Precio venta", "Estado"],
         row_builder=lambda obj: {
-            "cells": [obj.code, obj.name, obj.category.name, f"${obj.sale_price}", "Activo" if obj.is_active else "Inactivo"],
+            "cells": [obj.code, obj.name, obj.category.name, f"Bs {obj.sale_price}", "Activo" if obj.is_active else "Inactivo"],
             "edit_url": f"/catalogos/productos/{obj.pk}/editar/",
             "delete_url": f"/catalogos/productos/{obj.pk}/eliminar/",
         },
@@ -1541,7 +1541,7 @@ def customers_list(request):
         create_label="Nuevo cliente",
         headers=["Nombre", "Teléfono", "Crédito", "Saldo"],
         row_builder=lambda obj: {
-            "cells": [obj.name, obj.phone or "-", f"${obj.credit_limit}", f"${obj.balance}"],
+            "cells": [obj.name, obj.phone or "-", f"Bs {obj.credit_limit}", f"Bs {obj.balance}"],
             "edit_url": f"/catalogos/clientes/{obj.pk}/editar/",
             "delete_url": f"/catalogos/clientes/{obj.pk}/eliminar/",
         },

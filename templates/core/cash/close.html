@@ -14,9 +14,9 @@
       </div>
       {% if open_shift %}
       <div class="cash-summary mb-3">
-        <div><span>Esperado</span><strong>${{ open_shift.expected_cash }}</strong></div>
-        <div><span>Contado</span><strong>${{ open_shift.counted_cash }}</strong></div>
-        <div><span>Diferencia</span><strong>${{ open_shift.difference }}</strong></div>
+        <div><span>Esperado</span><strong>Bs {{ open_shift.expected_cash }}</strong></div>
+        <div><span>Contado</span><strong>Bs {{ open_shift.counted_cash }}</strong></div>
+        <div><span>Diferencia</span><strong>Bs {{ open_shift.difference }}</strong></div>
         <div><span>Estado</span><strong>{{ open_shift.get_status_display }}</strong></div>
       </div>
       {% else %}
@@ -49,7 +49,7 @@
             <tr>
               <td>{{ movement.get_movement_type_display }}</td>
               <td>{{ movement.concept }}</td>
-              <td>${{ movement.amount }}</td>
+              <td>Bs {{ movement.amount }}</td>
               <td>{{ movement.created_by }}</td>
             </tr>
             {% empty %}
