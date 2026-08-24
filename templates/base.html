@@ -36,7 +36,7 @@
         <a class="nav-link {% if request.resolver_match.url_name == 'transfers_overview' %}active{% endif %}" href="{% url 'transfers_overview' %}">Traspasos</a>
         <a class="nav-link {% if request.resolver_match.url_name == 'transfers_list' %}active{% endif %}" href="{% url 'transfers_list' %}">Traspasos listado</a>
         <a class="nav-link {% if request.resolver_match.url_name == 'customers_overview' %}active{% endif %}" href="{% url 'customers_overview' %}">Clientes</a>
-        <a class="nav-link {% if request.resolver_match.url_name == 'customers_list' %}active{% endif %}" href="{% url 'customers_list' %}">Clientes catálogo</a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'customers_list' %}active{% endif %}" href="{% url 'customers_list' %}">Listado de clientes</a>
         <a class="nav-link {% if request.resolver_match.url_name == 'cash_overview' %}active{% endif %}" href="{% url 'cash_overview' %}">Caja</a>
         <a class="nav-link {% if request.resolver_match.url_name == 'reports_overview' %}active{% endif %}" href="{% url 'reports_overview' %}">Reportes</a>
         {% if user.is_staff %}

@@ -5,10 +5,10 @@ from django.conf import settings
 from django.contrib.auth.models import Group
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from django.db.models import F, Sum
+from django.db.models import F, Q, Sum
 from django.urls import reverse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.http import HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseBadRequest
 from decimal import Decimal
 from django.utils import timezone
 
@@ -31,6 +31,7 @@ from .forms import (
     SupplierForm,
     TransferForm,
     TransferItemFormSet,
+    PosCustomerForm,
     UserAdminChangeForm,
     UserAdminCreateForm,
 )
@@ -177,9 +178,18 @@ def dashboard(request):
 
 def pos(request):
     cart_context = _cart_context(request)
+    selected_customer_id = request.GET.get("customer")
+    try:
+        selected_customer_id = int(selected_customer_id) if selected_customer_id else None
+    except (TypeError, ValueError):
+        selected_customer_id = None
+    customer_form = PosCustomerForm()
     context = {
         "customers": Customer.objects.filter(is_active=True).order_by("name")[:20],
         "quick_products": Product.objects.select_related("category", "brand").prefetch_related("stocks").filter(is_active=True).order_by("name")[:8],
+        "customer_form": customer_form,
+        "form": customer_form,
+        "selected_customer_id": selected_customer_id,
         **cart_context,
     }
     return render(request, "core/pos/index.html", context)
@@ -262,11 +272,28 @@ def pos_checkout(request):
 
 def pos_search(request):
     query = request.GET.get("q", "").strip()
-    products = Product.objects.select_related("category").filter(is_active=True)
+    products = Product.objects.select_related("category").prefetch_related("stocks").filter(is_active=True)
     if query:
-        products = products.filter(name__icontains=query) | products.filter(code__icontains=query) | products.filter(barcode__icontains=query)
+        products = products.filter(Q(name__icontains=query) | Q(code__icontains=query) | Q(barcode__icontains=query))
     products = products.order_by("name")[:12]
-    return render(request, "core/partials/pos_product_results.html", {"products": products, "query": query})
+    quick_products = Product.objects.select_related("category", "brand").prefetch_related("stocks").filter(is_active=True).order_by("name")[:8]
+    return render(request, "core/partials/pos_product_results.html", {"products": products, "quick_products": quick_products, "query": query})
+
+
+def pos_customer_create(request):
+    if request.method != "POST":
+        return HttpResponseBadRequest("Invalid method")
+    form = PosCustomerForm(request.POST)
+    if not form.is_valid():
+        return render(request, "core/partials/pos_customer_form.html", {"form": form})
+    customer = form.save(commit=False)
+    customer.balance = Decimal("0.00")
+    customer.is_active = True
+    customer.save()
+    redirect_url = f"{reverse('pos')}?customer={customer.pk}"
+    response = HttpResponse(status=204)
+    response.headers["HX-Redirect"] = redirect_url
+    return response
 
 
 def pos_add_item(request, pk):
@@ -1536,7 +1563,7 @@ def customers_list(request):
         request,
         model=Customer,
         page_title="Clientes",
-        page_subtitle="Catálogo de clientes y crédito",
+        page_subtitle="Listado de clientes y crédito",
         create_url="/catalogos/clientes/nuevo/",
         create_label="Nuevo cliente",
         headers=["Nombre", "Teléfono", "Crédito", "Saldo"],

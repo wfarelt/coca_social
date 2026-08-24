@@ -10,6 +10,7 @@ staff_required = user_passes_test(lambda user: user.is_authenticated and user.is
 urlpatterns = [
     path("", login_required(views.dashboard), name="dashboard"),
     path("pos/", login_required(views.pos), name="pos"),
+    path("pos/clientes/nuevo/", login_required(views.pos_customer_create), name="pos_customer_create"),
     path("pos/buscar/", login_required(views.pos_search), name="pos_search"),
     path("pos/agregar/<int:pk>/", login_required(views.pos_add_item), name="pos_add_item"),
     path("pos/actualizar/<int:pk>/", login_required(views.pos_update_item), name="pos_update_item"),

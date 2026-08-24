@@ -107,6 +107,23 @@ class CustomerForm(AppFormMixin, forms.ModelForm):
         self._apply_bootstrap()
 
 
+class PosCustomerForm(AppFormMixin, forms.ModelForm):
+    class Meta:
+        model = Customer
+        fields = ["name", "tax_id", "phone", "email", "credit_limit"]
+        labels = {
+            "name": "Nombre",
+            "tax_id": "NIT",
+            "phone": "Teléfono",
+            "email": "Correo",
+            "credit_limit": "Límite de crédito",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._apply_bootstrap()
+
+
 class PurchaseForm(AppFormMixin, forms.ModelForm):
     class Meta:
         model = Purchase
