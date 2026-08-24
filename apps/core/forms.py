@@ -174,12 +174,20 @@ class PurchaseItemForm(AppFormMixin, forms.ModelForm):
 
 
 class PurchaseItemFormSet(BaseInlineFormSet):
+    def _is_blank_form(self, form):
+        if form.cleaned_data.get("DELETE"):
+            return True
+        return not any(
+            form.cleaned_data.get(field) not in (None, "", Decimal("0.00"))
+            for field in ["product", "quantity", "cost_price", "line_total"]
+        )
+
     def calculate_totals(self):
         total = Decimal("0.00")
         for form in self.forms:
             if not form.is_valid() or not form.cleaned_data:
                 continue
-            if form.cleaned_data.get("DELETE"):
+            if self._is_blank_form(form):
                 continue
             quantity = form.cleaned_data.get("quantity")
             cost_price = form.cleaned_data.get("cost_price")
@@ -191,6 +199,13 @@ class PurchaseItemFormSet(BaseInlineFormSet):
         super().clean()
         if any(self.errors):
             return
+
+        for form in self.forms:
+            if form.cleaned_data.get("DELETE"):
+                continue
+            if self._is_blank_form(form):
+                form.cleaned_data = {}
+
         subtotal = self.calculate_totals()
         if self.instance and hasattr(self.instance, "subtotal"):
             self.instance.subtotal = subtotal

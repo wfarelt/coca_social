@@ -60,11 +60,14 @@
 
       <div class="col-12">
         <div class="panel bg-light border-0 shadow-none">
-          <div class="panel-header mb-3 p-0">
+          <div class="panel-header mb-3 p-0 d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2">
             <div>
               <h3 class="panel-title h5 mb-1">{{ items_title }}</h3>
               <p class="panel-subtitle mb-0 text-muted">{{ items_subtitle }}</p>
             </div>
+            <button type="button" id="add-purchase-row" class="btn btn-success btn-sm px-3">
+              <i class="bi bi-plus-lg me-1"></i> Añadir producto
+            </button>
           </div>
           {{ formset.management_form }}
           <div class="table-responsive">
@@ -72,12 +75,12 @@
               <thead>
                 <tr>
                   {% for header in item_headers %}<th class="py-3">{{ header }}</th>{% endfor %}
-                  <th class="py-3 text-center">Eliminar</th>
+                  <th class="py-3 text-center">Acción</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody id="purchase-items-body">
                 {% for item_form in formset %}
-                <tr>
+                <tr class="purchase-item-row">
                   {% for field in item_form.visible_fields %}
                     <td class="py-3 align-middle">
                       {{ field }}
@@ -85,7 +88,10 @@
                     </td>
                   {% endfor %}
                   <td class="py-3 text-center align-middle">
-                    {% if item_form.instance.pk %}{{ item_form.DELETE }}{% endif %}
+                    <label class="btn btn-outline-danger btn-sm mb-0 w-100 d-inline-flex align-items-center justify-content-center gap-2">
+                      {{ item_form.DELETE }}
+                      <span>Eliminar</span>
+                    </label>
                   </td>
                 </tr>
                 {% endfor %}
@@ -95,6 +101,23 @@
         </div>
       </div>
 
+      <template id="purchase-row-template">
+        <tr class="purchase-item-row">
+          {% with empty_form=formset.empty_form %}
+            <td class="py-3 align-middle">{{ empty_form.product }}</td>
+            <td class="py-3 align-middle">{{ empty_form.quantity }}</td>
+            <td class="py-3 align-middle">{{ empty_form.cost_price }}</td>
+            <td class="py-3 align-middle">{{ empty_form.line_total }}</td>
+            <td class="py-3 text-center align-middle">
+              <label class="btn btn-outline-danger btn-sm mb-0 w-100 d-inline-flex align-items-center justify-content-center gap-2">
+                {{ empty_form.DELETE }}
+                <span>Eliminar</span>
+              </label>
+            </td>
+          {% endwith %}
+        </tr>
+      </template>
+
       <div class="col-12 d-flex flex-column flex-sm-row gap-2">
         <button class="btn btn-primary px-4" type="submit">Guardar</button>
         <a class="btn btn-outline-secondary px-4" href="{{ list_url }}">Cancelar</a>
@@ -102,4 +125,35 @@
     </form>
   </section>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const tbody = document.getElementById('purchase-items-body');
+    const addButton = document.getElementById('add-purchase-row');
+    const template = document.getElementById('purchase-row-template');
+    const totalForms = document.querySelector('input[name="{{ formset.prefix }}-TOTAL_FORMS"]');
+
+    function replaceFormIndexes(html, index) {
+      return html.replace(/__prefix__/g, String(index));
+    }
+
+    if (addButton && template && totalForms) {
+      addButton.addEventListener('click', function () {
+        const currentCount = Number(totalForms.value || 0);
+        const html = replaceFormIndexes(template.innerHTML, currentCount);
+        tbody.insertAdjacentHTML('beforeend', html);
+        totalForms.value = String(currentCount + 1);
+      });
+    }
+
+    tbody.addEventListener('change', function (event) {
+      const checkbox = event.target;
+      if (!checkbox.matches('input[type="checkbox"]')) return;
+      const row = checkbox.closest('tr');
+      if (row) {
+        row.classList.toggle('table-danger', checkbox.checked);
+      }
+    });
+  });
+</script>
 {% endblock %}
