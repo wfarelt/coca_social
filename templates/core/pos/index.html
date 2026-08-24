@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}POS | Coca Social{% endblock %}
+{% block page_title %}Punto de venta{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-12 col-xl-8">
+    <section class="panel h-100">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">Venta rápida</h2>
+          <p class="panel-subtitle mb-0">Búsqueda instantánea y captura por código de barras</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+          <input
+            class="form-control form-control-sm search-field"
+            placeholder="Buscar productos o escanear código"
+            name="q"
+            hx-get="{% url 'pos_search' %}"
+            hx-trigger="keyup changed delay:250ms"
+            hx-target="#pos-search-results"
+            hx-swap="innerHTML">
+          <button class="btn btn-outline-primary btn-sm">Nuevo cliente</button>
+        </div>
+      </div>
+
+      <div id="pos-search-results">
+        {% include 'core/partials/pos_product_results.html' %}
+      </div>
+    </section>
+  </div>
+
+  <div class="col-12 col-xl-4">
+    <section class="panel h-100 pos-summary-panel">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">Carrito</h2>
+          <p class="panel-subtitle mb-0">Sucursal Centro · Caja abierta</p>
+        </div>
+      </div>
+
+      <div id="pos-cart">
+        {% include 'core/partials/pos_cart.html' %}
+      </div>
+
+      <div class="pos-totals">
+        <div><span>Subtotal</span><strong>${{ subtotal|default:0 }}</strong></div>
+        <div><span>Descuento</span><strong>${{ discount|default:0 }}</strong></div>
+        <div class="total-line"><span>Total</span><strong>${{ total|default:0 }}</strong></div>
+      </div>
+
+      <form method="post" action="{% url 'pos_checkout' %}">
+        {% csrf_token %}
+        <div class="pos-payment-grid">
+          <select class="form-select" name="customer">
+            <option value="">Consumidor final</option>
+            {% for customer in customers %}
+            <option value="{{ customer.pk }}">{{ customer.name }}</option>
+            {% endfor %}
+          </select>
+          <select class="form-select" name="payment_method">
+            <option value="cash">Efectivo</option>
+            <option value="card">Tarjeta</option>
+            <option value="credit">Crédito</option>
+          </select>
+          <input class="form-control" name="cash_received" placeholder="Efectivo recibido" value="0">
+          <input class="form-control" name="due_date" placeholder="Vence" type="date">
+        </div>
+
+        <button class="btn btn-primary btn-lg w-100 pos-pay-btn" type="submit">Cobrar</button>
+        <button class="btn btn-outline-secondary w-100 mt-2" type="button">Vender al crédito</button>
+      </form>
+    </section>
+  </div>
+</div>
+{% endblock %}

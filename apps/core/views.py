@@ -178,7 +178,7 @@ def pos(request):
         "quick_products": Product.objects.select_related("category", "brand").prefetch_related("stocks").filter(is_active=True).order_by("name")[:8],
         **cart_context,
     }
-    return render(request, "core/pos.html", context)
+    return render(request, "core/pos/index.html", context)
 
 
 def pos_checkout(request):
@@ -365,7 +365,7 @@ def sale_detail(request, pk):
     sale = get_object_or_404(Sale.objects.select_related("branch", "cashier", "customer").prefetch_related("items__product"), pk=pk)
     return render(
         request,
-        "core/sale_detail.html",
+        "core/sales/detail.html",
         {
             "sale": sale,
             "page_title": sale.folio,
@@ -858,7 +858,7 @@ def cash_overview(request):
     movements = open_shift.movements.select_related("created_by").order_by("-created_at")[:8] if open_shift else []
     return render(
         request,
-        "core/cash_overview.html",
+        "core/cash/overview.html",
         {
             "branch": branch,
             "open_shift": open_shift,
@@ -890,7 +890,7 @@ def cash_opening(request):
             return redirect("cash_overview")
     return render(
         request,
-        "core/cash_opening.html",
+        "core/cash/opening.html",
         {
             "form": form,
             "active_branch": active_branch,
@@ -926,7 +926,7 @@ def cash_close(request):
     movements = open_shift.movements.select_related("created_by").order_by("-created_at")[:10] if open_shift else []
     return render(
         request,
-        "core/cash_close.html",
+        "core/cash/close.html",
         {
             "form": form,
             "open_shift": open_shift,
@@ -960,7 +960,7 @@ def _cash_movements(request, *, movement_type, page_title, page_subtitle):
     movements = open_shift.movements.select_related("created_by").order_by("-created_at")[:12] if open_shift else []
     return render(
         request,
-        "core/cash_movements.html",
+        "core/cash/movements.html",
         {
             "form": form,
             "open_shift": open_shift,
