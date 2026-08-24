@@ -615,15 +615,15 @@ def inventory_adjustment_delete(request, pk):
 
 
 def purchases_overview(request):
-    return render(request, "core/module.html", _module_context("Compras", "Órdenes, entradas y proveedores", ["Listado", "Nueva compra", "Proveedores"], [{"label": "Compras mes", "value": "$184,900"}], [{"a": "C-1209", "b": "Distribuidora XYZ", "c": "$18,240", "d": "Registrada"}]))
+    return render(request, "core/purchases/module.html", _module_context("Compras", "Órdenes, entradas y proveedores", ["Listado", "Nueva compra", "Proveedores"], [{"label": "Compras mes", "value": "$184,900"}], [{"a": "C-1209", "b": "Distribuidora XYZ", "c": "$18,240", "d": "Registrada"}]))
 
 
 def new_purchase(request):
-    return render(request, "core/module.html", _module_context("Nueva compra", "Captura rápida por producto o proveedor", ["Guardar borrador", "Registrar"], [{"label": "Líneas", "value": "0"}], []))
+    return render(request, "core/purchases/module.html", _module_context("Nueva compra", "Captura rápida por producto o proveedor", ["Guardar borrador", "Registrar"], [{"label": "Líneas", "value": "0"}], []))
 
 
 def suppliers(request):
-    return render(request, "core/module.html", _module_context("Proveedores", "Catálogo de abastecedores", ["Nuevo proveedor"], [{"label": "Proveedores", "value": "24"}], [{"a": "Distribuidora XYZ", "b": "Activo", "c": "555-1234", "d": "Norte"}]))
+    return render(request, "core/purchases/module.html", _module_context("Proveedores", "Catálogo de abastecedores", ["Nuevo proveedor"], [{"label": "Proveedores", "value": "24"}], [{"a": "Distribuidora XYZ", "b": "Activo", "c": "555-1234", "d": "Norte"}]))
 
 
 def _system_user():
@@ -816,35 +816,35 @@ def transfer_delete(request, pk):
 
 
 def transfers_overview(request):
-    return render(request, "core/module.html", _module_context("Traspasos", "Flujo entre sucursales y recepción parcial", ["Listado", "Nuevo traspaso"], [{"label": "Pendientes", "value": "7"}], [{"a": "TR-204", "b": "Centro → Norte", "c": "120 uds", "d": "Pendiente"}]))
+    return render(request, "core/transfers/module.html", _module_context("Traspasos", "Flujo entre sucursales y recepción parcial", ["Listado", "Nuevo traspaso"], [{"label": "Pendientes", "value": "7"}], [{"a": "TR-204", "b": "Centro → Norte", "c": "120 uds", "d": "Pendiente"}]))
 
 
 def new_transfer(request):
-    return render(request, "core/module.html", _module_context("Nuevo traspaso", "Sucursal origen, productos, cantidades y destino", ["Enviar"], [{"label": "Estado", "value": "Borrador"}], []))
+    return render(request, "core/transfers/module.html", _module_context("Nuevo traspaso", "Sucursal origen, productos, cantidades y destino", ["Enviar"], [{"label": "Estado", "value": "Borrador"}], []))
 
 
 def sent_transfers(request):
-    return render(request, "core/module.html", _module_context("Traspasos enviados", "Despachos en tránsito", ["Ver pendientes"], [{"label": "Enviados", "value": "5"}], [{"a": "TR-203", "b": "Oriente → Centro", "c": "48 uds", "d": "Enviado"}]))
+    return render(request, "core/transfers/module.html", _module_context("Traspasos enviados", "Despachos en tránsito", ["Ver pendientes"], [{"label": "Enviados", "value": "5"}], [{"a": "TR-203", "b": "Oriente → Centro", "c": "48 uds", "d": "Enviado"}]))
 
 
 def received_transfers(request):
-    return render(request, "core/module.html", _module_context("Traspasos recibidos", "Recepciones confirmadas", ["Validar recepción"], [{"label": "Recibidos", "value": "11"}], [{"a": "TR-198", "b": "Norte → Centro", "c": "50 uds", "d": "Recibido"}]))
+    return render(request, "core/transfers/module.html", _module_context("Traspasos recibidos", "Recepciones confirmadas", ["Validar recepción"], [{"label": "Recibidos", "value": "11"}], [{"a": "TR-198", "b": "Norte → Centro", "c": "50 uds", "d": "Recibido"}]))
 
 
 def pending_transfers(request):
-    return render(request, "core/module.html", _module_context("Traspasos pendientes", "Confirmación de cantidades recibidas", ["Recepcionar"], [{"label": "Pendientes", "value": "7"}], [{"a": "TR-204", "b": "Centro → Norte", "c": "120 uds", "d": "Pendiente"}]))
+    return render(request, "core/transfers/module.html", _module_context("Traspasos pendientes", "Confirmación de cantidades recibidas", ["Recepcionar"], [{"label": "Pendientes", "value": "7"}], [{"a": "TR-204", "b": "Centro → Norte", "c": "120 uds", "d": "Pendiente"}]))
 
 
 def customers_overview(request):
-    return render(request, "core/module.html", _module_context("Clientes", "Catálogo de clientes y consumo", ["Nuevo cliente"], [{"label": "Clientes", "value": "486"}], [{"a": "Tienda López", "b": "Activo", "c": "$2,100", "d": "Crédito"}]))
+    return render(request, "core/clients/module.html", _module_context("Clientes", "Catálogo de clientes y consumo", ["Nuevo cliente"], [{"label": "Clientes", "value": "486"}], [{"a": "Tienda López", "b": "Activo", "c": "$2,100", "d": "Crédito"}]))
 
 
 def credits_overview(request):
-    return render(request, "core/module.html", _module_context("Créditos / Fiados", "Saldo, vencimientos y cartera", ["Cobrar"], [{"label": "Pendientes", "value": "$9,240"}], [{"a": "Tienda López", "b": "$860", "c": "15 días", "d": "Vencido"}]))
+    return render(request, "core/credits/module.html", _module_context("Créditos / Fiados", "Saldo, vencimientos y cartera", ["Cobrar"], [{"label": "Pendientes", "value": "$9,240"}], [{"a": "Tienda López", "b": "$860", "c": "15 días", "d": "Vencido"}]))
 
 
 def collections_overview(request):
-    return render(request, "core/module.html", _module_context("Cobros", "Aplicación de pagos y abonos", ["Registrar cobro"], [{"label": "Cobros hoy", "value": "$3,200"}], [{"a": "CO-112", "b": "Tienda López", "c": "$860", "d": "Aplicado"}]))
+    return render(request, "core/credits/module.html", _module_context("Cobros", "Aplicación de pagos y abonos", ["Registrar cobro"], [{"label": "Cobros hoy", "value": "$3,200"}], [{"a": "CO-112", "b": "Tienda López", "c": "$860", "d": "Aplicado"}]))
 
 
 def cash_overview(request):
@@ -872,7 +872,7 @@ def cash_overview(request):
 
 
 def my_shift(request):
-    return render(request, "core/module.html", _module_context("Mi turno", "Caja por usuario y sucursal", ["Ver arqueo"], [{"label": "Usuario", "value": "DE"}], []))
+    return render(request, "core/cash/shift.html", _module_context("Mi turno", "Caja por usuario y sucursal", ["Ver arqueo"], [{"label": "Usuario", "value": "DE"}], []))
 
 
 def cash_opening(request):
