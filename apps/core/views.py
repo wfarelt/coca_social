@@ -21,6 +21,7 @@ from .forms import (
     CategoryForm,
     CustomerForm,
     InventoryAdjustmentForm,
+    GroupAdminForm,
     SaleReturnForm,
     SaleReturnItemFormSet,
     ProductForm,
@@ -29,6 +30,8 @@ from .forms import (
     SupplierForm,
     TransferForm,
     TransferItemFormSet,
+    UserAdminChangeForm,
+    UserAdminCreateForm,
 )
 from .models import Brand, Branch, CashMovement, CashShift, Category, CreditAccount, Customer, InventoryAdjustment, Product, ProductStock, Purchase, Sale, SaleItem, SaleReturn, Supplier, Transfer
 
@@ -495,27 +498,27 @@ def sale_return_delete(request, pk):
 
 
 def inventory_overview(request):
-    return render(request, "core/module.html", _module_context("Inventario", "Catálogo, stock por sucursal y kardex", ["Nuevo producto", "Ajuste de inventario"], [{"label": "Productos", "value": "1,248"}, {"label": "Bajo stock", "value": "24"}], [{"a": "Arroz 1 kg", "b": "ARZ-001", "c": "Centro", "d": "Bajo"}, {"a": "Aceite 1 L", "b": "ACE-014", "c": "Norte", "d": "Agotado"}]))
+    return render(request, "core/inventory/module.html", _module_context("Inventario", "Catálogo, stock por sucursal y kardex", ["Nuevo producto", "Ajuste de inventario"], [{"label": "Productos", "value": "1,248"}, {"label": "Bajo stock", "value": "24"}], [{"a": "Arroz 1 kg", "b": "ARZ-001", "c": "Centro", "d": "Bajo"}, {"a": "Aceite 1 L", "b": "ACE-014", "c": "Norte", "d": "Agotado"}]))
 
 
 def products(request):
-    return render(request, "core/module.html", _module_context("Productos", "Alta, edición y control de artículos", ["Nuevo producto", "Importar"], [{"label": "Activos", "value": "1,201"}], [{"a": "Arroz 1 kg", "b": "ARZ-001", "c": "$18 / $26", "d": "Activo"}]))
+    return render(request, "core/inventory/module.html", _module_context("Productos", "Alta, edición y control de artículos", ["Nuevo producto", "Importar"], [{"label": "Activos", "value": "1,201"}], [{"a": "Arroz 1 kg", "b": "ARZ-001", "c": "$18 / $26", "d": "Activo"}]))
 
 
 def categories(request):
-    return render(request, "core/module.html", _module_context("Categorías", "Estructura comercial por familias", ["Nueva categoría"], [{"label": "Categorías", "value": "38"}], [{"a": "Abarrotes", "b": "142 productos", "c": "Principal", "d": "Activa"}]))
+    return render(request, "core/inventory/module.html", _module_context("Categorías", "Estructura comercial por familias", ["Nueva categoría"], [{"label": "Categorías", "value": "38"}], [{"a": "Abarrotes", "b": "142 productos", "c": "Principal", "d": "Activa"}]))
 
 
 def brands(request):
-    return render(request, "core/module.html", _module_context("Marcas", "Fabricantes y marcas registradas", ["Nueva marca"], [{"label": "Marcas", "value": "52"}], [{"a": "Bimbo", "b": "Panificación", "c": "Alta", "d": "Activa"}]))
+    return render(request, "core/inventory/module.html", _module_context("Marcas", "Fabricantes y marcas registradas", ["Nueva marca"], [{"label": "Marcas", "value": "52"}], [{"a": "Bimbo", "b": "Panificación", "c": "Alta", "d": "Activa"}]))
 
 
 def stock_by_branch(request):
-    return render(request, "core/module.html", _module_context("Stock por sucursal", "Disponibilidad por sede y mínimos", ["Ver críticos"], [{"label": "Sucursales", "value": "3"}], [{"a": "Sucursal Centro", "b": "Arroz 1 kg", "c": "3", "d": "Bajo"}]))
+    return render(request, "core/inventory/module.html", _module_context("Stock por sucursal", "Disponibilidad por sede y mínimos", ["Ver críticos"], [{"label": "Sucursales", "value": "3"}], [{"a": "Sucursal Centro", "b": "Arroz 1 kg", "c": "3", "d": "Bajo"}]))
 
 
 def kardex(request):
-    return render(request, "core/module.html", _module_context("Kardex", "Entradas, salidas y movimientos", ["Exportar"], [{"label": "Movimientos", "value": "8,412"}], [{"a": "Compra", "b": "ARZ-001", "c": "+100", "d": "Entrada"}]))
+    return render(request, "core/inventory/module.html", _module_context("Kardex", "Entradas, salidas y movimientos", ["Exportar"], [{"label": "Movimientos", "value": "8,412"}], [{"a": "Compra", "b": "ARZ-001", "c": "+100", "d": "Entrada"}]))
 
 
 def inventory_adjustments(request):
@@ -981,7 +984,7 @@ def reports_overview(request):
     out_stock_count = ProductStock.objects.filter(quantity__lte=0).count()
     return render(
         request,
-        "core/module.html",
+        "core/reports/module.html",
         _module_context(
             "Reportes",
             "Ventas, compras, inventario, caja y devoluciones",
