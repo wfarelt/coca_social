@@ -59,6 +59,7 @@ urlpatterns = [
     path("caja/gastos/", login_required(views.cash_expenses), name="cash_expenses"),
     path("caja/arqueo/", login_required(views.cash_close), name="cash_close"),
     path("reportes/", login_required(views.reports_overview), name="reports_overview"),
+    path("sucursal/seleccionar/", login_required(views.set_selected_branch), name="set_selected_branch"),
     path("administracion/", staff_required(views.admin_overview), name="admin_overview"),
     path("administracion/sucursales/", staff_required(views.admin_branches), name="admin_branches"),
     path("administracion/usuarios/", staff_required(views.admin_users), name="admin_users"),

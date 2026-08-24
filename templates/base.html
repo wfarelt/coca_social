@@ -58,13 +58,17 @@
           <h1 class="page-title mb-0">{% block page_title %}Dashboard{% endblock %}</h1>
         </div>
         <div class="topbar-actions">
-          <select class="form-select form-select-sm branch-select select2-no-search" name="branch">
-            {% for branch in topbar_branches %}
-            <option value="{{ branch.pk }}" {% if selected_topbar_branch and selected_topbar_branch.pk == branch.pk %}selected{% endif %}>{{ branch.name }}</option>
-            {% empty %}
-            <option value="">Sin sucursales registradas</option>
-            {% endfor %}
-          </select>
+          <form method="post" action="{% url 'set_selected_branch' %}" class="d-inline-flex">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <select class="form-select form-select-sm branch-select select2-no-search" name="branch" onchange="this.form.submit()">
+              {% for branch in topbar_branches %}
+              <option value="{{ branch.pk }}" {% if selected_topbar_branch and selected_topbar_branch.pk == branch.pk %}selected{% endif %}>{{ branch.name }}</option>
+              {% empty %}
+              <option value="">Sin sucursales registradas</option>
+              {% endfor %}
+            </select>
+          </form>
           <button class="btn btn-light btn-sm">Notificaciones</button>
           {% if user.is_authenticated %}
           <a class="btn btn-outline-light btn-sm" href="{% url 'logout' %}">Salir</a>

@@ -12,6 +12,7 @@ from django.http import HttpResponseBadRequest
 from decimal import Decimal
 from django.utils import timezone
 
+from .context_processors import selected_branch_for_request
 from .forms import (
     CashCloseForm,
     CashMovementForm,
@@ -47,7 +48,7 @@ def _module_context(title, subtitle, actions, stats=None, rows=None):
 
 
 def dashboard(request):
-    branch = Branch.objects.filter(is_active=True).order_by("name").first()
+    branch = selected_branch_for_request(request)
     today = timezone.localdate()
     week_start = today - timedelta(days=6)
 
@@ -848,7 +849,7 @@ def collections_overview(request):
 
 
 def cash_overview(request):
-    branch = Branch.objects.filter(is_active=True).order_by("name").first()
+    branch = selected_branch_for_request(request)
     open_shift = _active_cash_shift(branch) if branch else None
     if open_shift is None:
         open_shift = CashShift.objects.select_related("branch", "user").filter(status=CashShift.Status.OPEN).order_by("-opened_at").first()
@@ -876,7 +877,7 @@ def my_shift(request):
 
 
 def cash_opening(request):
-    active_branch = Branch.objects.filter(is_active=True).order_by("name").first()
+    active_branch = selected_branch_for_request(request)
     form = CashShiftOpenForm(request.POST or None, initial={"branch": active_branch, "initial_amount": Decimal("0.00")})
     open_shift = _active_cash_shift(active_branch) if active_branch else None
     if request.method == "POST" and form.is_valid():
@@ -911,7 +912,7 @@ def cash_expenses(request):
 
 
 def cash_close(request):
-    branch = Branch.objects.filter(is_active=True).order_by("name").first()
+    branch = selected_branch_for_request(request)
     open_shift = _active_cash_shift(branch) if branch else None
     if open_shift is None:
         open_shift = CashShift.objects.select_related("branch", "user").filter(status=CashShift.Status.OPEN).order_by("-opened_at").first()
@@ -939,7 +940,7 @@ def cash_close(request):
 
 
 def _cash_movements(request, *, movement_type, page_title, page_subtitle):
-    branch = Branch.objects.filter(is_active=True).order_by("name").first()
+    branch = selected_branch_for_request(request)
     open_shift = _active_cash_shift(branch) if branch else None
     if open_shift is None:
         open_shift = CashShift.objects.select_related("branch", "user").filter(status=CashShift.Status.OPEN).order_by("-opened_at").first()
@@ -1175,6 +1176,20 @@ def admin_settings(request):
             ],
         },
     )
+
+
+def set_selected_branch(request):
+    if request.method != "POST":
+        return redirect("dashboard")
+    branch_id = request.POST.get("branch")
+    next_url = request.POST.get("next") or reverse("dashboard")
+    if branch_id:
+        branch = Branch.objects.filter(pk=branch_id, is_active=True).first()
+        if branch is not None:
+            request.session["selected_branch_id"] = branch.pk
+    else:
+        request.session.pop("selected_branch_id", None)
+    return redirect(next_url if isinstance(next_url, str) and next_url.startswith("/") else reverse("dashboard"))
 
 
 def _catalog_list(request, *, model, page_title, page_subtitle, create_url, create_label, headers, row_builder):
